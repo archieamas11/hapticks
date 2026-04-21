@@ -5,21 +5,17 @@ import com.hapticks.app.data.HapticsPreferences
 import com.hapticks.app.haptics.HapticEngine
 
 /**
- * Application class acts as a tiny service locator so the accessibility service, view model,
- * and any future surface can share a single [HapticsPreferences] and [HapticEngine] instance
- * without pulling in a DI framework.
+ * Tiny service-locator for app-wide singletons shared between the accessibility service, the
+ * view model, and the UI. Both singletons use lazy initialization so [Application.onCreate]
+ * returns fast; the first call from either surface pays the binder probes.
  */
 class HapticksApp : Application() {
 
-    lateinit var preferences: HapticsPreferences
-        private set
+    val preferences: HapticsPreferences by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        HapticsPreferences(this)
+    }
 
-    lateinit var hapticEngine: HapticEngine
-        private set
-
-    override fun onCreate() {
-        super.onCreate()
-        preferences = HapticsPreferences(this)
-        hapticEngine = HapticEngine(this)
+    val hapticEngine: HapticEngine by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        HapticEngine(this)
     }
 }

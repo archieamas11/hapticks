@@ -24,14 +24,26 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
+            isJniDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
         debug {
             isMinifyEnabled = false
         }
+    }
+
+    androidResources {
+        generateLocaleConfig = true
+    }
+
+    dependenciesInfo {
+        // Strip signed dependency metadata from APKs so the package is smaller when
+        // sideloaded. Play Store builds keep it via the bundle.
+        includeInApk = false
     }
 
     compileOptions {
