@@ -2,17 +2,25 @@ package com.hapticks.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Hapticks palette - tuned to match the olive-on-near-black reference.
-internal val HapticksBlack = Color(0xFF0B0B09)
-internal val HapticksSurface = Color(0xFF1B1B15)
-internal val HapticksSurfaceHigh = Color(0xFF24241D)
-internal val HapticksOutline = Color(0xFF35352C)
+internal val HapticksBlack = Color(0xFF0A0A08)
+internal val HapticksSurface = Color(0xFF151510)
+internal val HapticksSurfaceLow = Color(0xFF101009)
+internal val HapticksSurfaceContainer = Color(0xFF1B1B14)
+internal val HapticksSurfaceHigh = Color(0xFF242419)
+internal val HapticksSurfaceHighest = Color(0xFF2D2D20)
+internal val HapticksOutline = Color(0xFF3A3A2D)
+internal val HapticksOutlineVariant = Color(0xFF272720)
 
-internal val HapticksSage = Color(0xFFC7D18A)
-internal val HapticksSageDim = Color(0xFF9BA668)
-internal val HapticksOlive = Color(0xFF4A5326)
-internal val HapticksOliveDim = Color(0xFF343A18)
+internal val HapticksSage = Color(0xFFD6E09A)
+internal val HapticksSageDim = Color(0xFFABB774)
+internal val HapticksOlive = Color(0xFF4F5A28)
+internal val HapticksOliveDim = Color(0xFF363E14)
+internal val HapticksOliveOnContainer = Color(0xFFE4EEA8)
 
-internal val HapticksOnSurface = Color(0xFFE6E6E0)
-internal val HapticksOnSurfaceMuted = Color(0xFF9A9A90)
-internal val HapticksOnPrimary = Color(0xFF1C2108)
+internal val HapticksCopper = Color(0xFFF2B488)
+internal val HapticksCopperContainer = Color(0xFF4A2A17)
+internal val HapticksOnCopperContainer = Color(0xFFFFDBC4)
+
+internal val HapticksOnSurface = Color(0xFFEDEDE5)
+internal val HapticksOnSurfaceMuted = Color(0xFFA3A395)
+internal val HapticksOnPrimary = Color(0xFF1F2407)

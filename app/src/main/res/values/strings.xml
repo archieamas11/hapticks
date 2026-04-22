@@ -6,23 +6,40 @@
     <string name="accessibility_service_summary">Adds haptic feedback to taps system-wide.</string>
     <string name="accessibility_service_description">Hapticks listens for tap accessibility events so it can trigger the device vibrator. It does not read, store, or transmit any on-screen content. You can turn it off at any time from Settings > Accessibility.</string>
 
-    <string name="screen_title">Custom Haptics</string>
+    <string name="home_greeting">Hello</string>
+    <string name="home_subtitle">Tune how your phone feels</string>
+
+    <string name="screen_title">Feel Every Tap</string>
     <string name="section_haptic_feedback">Haptic Feedback</string>
+    <string name="section_haptic_feedback_subtitle">Control how taps feel across your device</string>
     <string name="section_pattern">Pattern</string>
+    <string name="section_pattern_subtitle">Pick the texture of each tap</string>
 
     <string name="toggle_tap_title">Custom Tap Haptics</string>
-    <string name="toggle_tap_subtitle">Haptic feedback on every tap</string>
+    <string name="toggle_tap_subtitle">Enable vibration feedback for every tap</string>
 
-    <string name="intensity_label">Intensity: %1$d%%</string>
+    <string name="intensity_label">Intensity</string>
+    <string name="intensity_value">%1$d%%</string>
     <string name="test_haptic">Test Haptic</string>
 
     <string name="pattern_click">Click</string>
+    <string name="pattern_click_desc">Crisp, confirmed tap</string>
     <string name="pattern_tick">Tick</string>
-    <string name="pattern_heavy_click">Heavy Click</string>
-    <string name="pattern_double_click">Double Click</string>
+    <string name="pattern_tick_desc">Subtle, low-energy pulse</string>
+    <string name="pattern_heavy_click">Heavy</string>
+    <string name="pattern_heavy_click_desc">Strong, punchy feedback</string>
+    <string name="pattern_double_click">Double</string>
+    <string name="pattern_double_click_desc">Two rapid taps in sequence</string>
+    <string name="pattern_selected">Selected</string>
 
-    <string name="enable_service_title">Turn on Hapticks accessibility service</string>
+    <string name="enable_service_title">Turn on accessibility service</string>
     <string name="enable_service_body">Hapticks needs the accessibility service to fire haptic feedback when you tap in any app. Your content is never read or stored.</string>
     <string name="enable_service_cta">Open Accessibility settings</string>
     <string name="back">Back</string>
+
+    <string name="home_feel_every_tap_title">Feel Every Tap</string>
+    <string name="home_feel_every_tap_subtitle">Adds responsive touch feedback across apps and system UI for a more refined, premium feel</string>
+    <string name="home_coming_soon_title">Coming Soon</string>
+    <string name="home_coming_soon_subtitle">More haptic experiences are on the way. Stay tuned.</string>
+    <string name="home_coming_soon_badge">In the works</string>
 </resources>

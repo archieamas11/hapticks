@@ -14,21 +14,28 @@ private val HapticksDarkColorScheme = darkColorScheme(
     primary = HapticksSage,
     onPrimary = HapticksOnPrimary,
     primaryContainer = HapticksOlive,
-    onPrimaryContainer = HapticksSage,
+    onPrimaryContainer = HapticksOliveOnContainer,
     secondary = HapticksSageDim,
     onSecondary = HapticksOnPrimary,
     secondaryContainer = HapticksOliveDim,
-    onSecondaryContainer = HapticksSage,
+    onSecondaryContainer = HapticksOliveOnContainer,
+    tertiary = HapticksCopper,
+    onTertiary = HapticksOnPrimary,
+    tertiaryContainer = HapticksCopperContainer,
+    onTertiaryContainer = HapticksOnCopperContainer,
     background = HapticksBlack,
     onBackground = HapticksOnSurface,
     surface = HapticksBlack,
     onSurface = HapticksOnSurface,
     surfaceVariant = HapticksSurface,
     onSurfaceVariant = HapticksOnSurfaceMuted,
-    surfaceContainer = HapticksSurface,
+    surfaceContainerLowest = HapticksSurfaceLow,
+    surfaceContainerLow = HapticksSurface,
+    surfaceContainer = HapticksSurfaceContainer,
     surfaceContainerHigh = HapticksSurfaceHigh,
+    surfaceContainerHighest = HapticksSurfaceHighest,
     outline = HapticksOutline,
-    outlineVariant = HapticksOutline,
+    outlineVariant = HapticksOutlineVariant,
 )
 
 @Composable
@@ -48,6 +55,7 @@ fun HapticksTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = HapticksDarkColorScheme,
         typography = HapticksTypography,
+        shapes = HapticksShapes,
         content = content,
     )
 }

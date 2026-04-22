@@ -7,9 +7,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hapticks.app.ui.screens.CustomHapticsScreen
+import com.hapticks.app.ui.screens.HomeScreen
 import com.hapticks.app.ui.theme.HapticksTheme
 import com.hapticks.app.viewmodel.CustomHapticsViewModel
 
@@ -27,16 +32,25 @@ class MainActivity : ComponentActivity() {
                 val settings by viewModel.settings.collectAsStateWithLifecycle()
                 val isServiceEnabled by viewModel.isServiceEnabled.collectAsStateWithLifecycle()
 
-                CustomHapticsScreen(
-                    settings = settings,
-                    isServiceEnabled = isServiceEnabled,
-                    onTapEnabledChange = viewModel::setTapEnabled,
-                    onIntensityCommit = viewModel::commitIntensity,
-                    onPatternSelected = viewModel::setPattern,
-                    onTestHaptic = viewModel::testHaptic,
-                    onOpenAccessibilitySettings = ::openAccessibilitySettings,
-                    onBack = ::finish,
-                )
+                var showCustomHaptics by rememberSaveable { mutableStateOf(false) }
+
+                if (showCustomHaptics) {
+                    BackHandler { showCustomHaptics = false }
+                    CustomHapticsScreen(
+                        settings = settings,
+                        isServiceEnabled = isServiceEnabled,
+                        onTapEnabledChange = viewModel::setTapEnabled,
+                        onIntensityCommit = viewModel::commitIntensity,
+                        onPatternSelected = viewModel::setPattern,
+                        onTestHaptic = viewModel::testHaptic,
+                        onOpenAccessibilitySettings = ::openAccessibilitySettings,
+                        onBack = { showCustomHaptics = false },
+                    )
+                } else {
+                    HomeScreen(
+                        onOpenFeelEveryTap = { showCustomHaptics = true },
+                    )
+                }
             }
         }
     }

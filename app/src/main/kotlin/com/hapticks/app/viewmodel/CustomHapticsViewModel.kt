@@ -1,7 +1,9 @@
 package com.hapticks.app.viewmodel
 
 import android.app.Application
+import android.content.ComponentName
 import android.content.Context
+import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -80,12 +82,25 @@ class CustomHapticsViewModel(
         private fun isAccessibilityServiceEnabled(context: Context): Boolean {
             val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE)
                 as? AccessibilityManager ?: return false
-            val expected = HapticsAccessibilityService::class.java.name
-            return manager
-                .getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-                .any { info ->
-                    val id = info.id ?: return@any false
-                    id.endsWith(expected) || id.contains(expected)
+            if (!manager.isEnabled) return false
+
+            // Read the canonical secure-setting source so we do not depend on feedback-type filters.
+            val enabledServices = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ) ?: return false
+
+            val expectedComponent = ComponentName(
+                context,
+                HapticsAccessibilityService::class.java,
+            ).flattenToString()
+
+            return enabledServices
+                .split(':')
+                .any { serviceId ->
+                    val normalized = serviceId.trim()
+                    normalized.equals(expectedComponent, ignoreCase = true) ||
+                        normalized.endsWith(HapticsAccessibilityService::class.java.name, ignoreCase = true)
                 }
         }
 

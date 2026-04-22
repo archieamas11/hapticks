@@ -1,40 +1,45 @@
 package com.hapticks.app.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 /**
- * Shared section scaffolding: an accent-colored caption followed by a rounded container that
- * hosts the section's content.
+ * Shared section scaffolding. The header can optionally display a leading icon badge and a
+ * one-line subtitle under the title, which gives each section a distinct, expressive feel
+ * without nesting cards. The body is rendered inside a rounded tonal container.
  */
 @Composable
 fun SectionCard(
     title: String,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
     contentPadding: PaddingValues = PaddingValues(vertical = 4.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
-        )
+        SectionHeader(title = title, subtitle = subtitle, icon = icon)
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(28.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -42,6 +47,57 @@ fun SectionCard(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
                 content = content,
             )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String?,
+    icon: ImageVector?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 6.dp, end = 6.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(10.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
