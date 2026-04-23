@@ -27,7 +27,16 @@
         tools:targetApi="33">
 
         <!-- LSPosed module metadata. Consumed by LSPosed Manager when the APK is installed on
-             a rooted device that hosts LSPosed; ignored on every other device. -->
+             a rooted device that hosts LSPosed; ignored on every other device.
+
+             xposedminversion=93 is the universal baseline LSPosed reports for the classic
+             `de.robv.android.xposed.*` API (still the canonical entry point in LSPosed 1.10 /
+             2026 builds — the newer libxposed interface runs alongside it, but the classic
+             API is what our EdgeScrollHooks uses).
+
+             xposedsharedprefs=true opts into LSPosed's in-kernel MODE_WORLD_READABLE shim,
+             so XSharedPreferences reads in hooked target processes don't silently fall back
+             to defaults when the module's prefs file was written on a recent Android. -->
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
@@ -40,6 +49,9 @@
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="true" />
 
         <activity
             android:name=".MainActivity"

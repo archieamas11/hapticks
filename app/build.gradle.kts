@@ -61,12 +61,6 @@ android {
         }
     }
 
-    if (!rootProject.file("app/libs/api-82.jar").exists()) {
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-            exclude("**/com/hapticks/app/edge/EdgeScrollHooks.kt")
-        }
-    }
-
     sourceSets {
         getByName("main") {
             java.srcDirs("src/main/kotlin")
@@ -95,15 +89,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Xposed API for LSPosed module. Bundled as a local JAR because the traditional
-    // JCenter coordinates no longer resolve. The JAR is compileOnly — never packaged
-    // into the APK — so at runtime we rely on LSPosed having injected the real
-    // classes. When the JAR is absent the edge/EdgeScrollHooks.kt entry point is
-    // excluded from the build (see sourceSets above) and EdgeHapticsBridge reports
-    // the feature as unavailable at runtime.
-    if (rootProject.file("app/libs/api-82.jar").exists()) {
-        compileOnly(files("libs/api-82.jar"))
-    }
+    // LSPosed / Xposed classic API. Provided at runtime by the LSPosed framework,
+    // so we only need compile-time signatures. The `:xposed-api` subproject vendors
+    // those stubs in-tree — no external repo or drop-in jar required.
+    compileOnly(project(":xposed-api"))
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

@@ -6,59 +6,48 @@ import android.os.VibrationAttributes
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import androidx.core.content.edit
 import com.hapticks.app.HapticksApp
-import com.hapticks.app.data.HapticsSettings
 import com.hapticks.app.haptics.HapticPattern
 import kotlinx.coroutines.flow.first
 import java.io.File
 
 /**
- * Single entry point from the Hapticks UI into the Edge Haptics feature. Intentionally
- * free of any direct reference to `de.robv.android.xposed.*` so the class compiles
- * cleanly even when the Xposed API JAR has not been vendored — the Xposed-specific
- * bits live exclusively in [EdgeScrollHooks].
+ * The process-local source of truth for "is the LSPosed module wired into this
+ * device?". Runs entirely inside the Hapticks app process.
  *
- * Availability is a three-step cascade:
- *  1. Does the device look rooted? (su / magisk on PATH). This is a best-effort
- *     signal we surface in the UI but do not gate on, because "Edge Haptics works"
- *     is ultimately determined by whether LSPosed has loaded our module.
- *  2. Is LSPosed active in *this* process? LSPosed loads enabled modules into their
- *     own app process too, so a successful `Class.forName` on [XPOSED_BRIDGE_CLASS]
- *     is an authoritative signal that the hook is live.
- *  3. Has the user toggled Edge Haptics on in [com.hapticks.app.data.HapticsSettings]?
+ * Detection strategy (most authoritative first):
+ *
+ *  1. **Activation stub.** [isModuleActive] returns `false` by default; when
+ *     LSPosed has loaded the Hapticks module into our own process,
+ *     [EdgeScrollHooks.hookOwnActivationStub] rewrites that return value to
+ *     `true`. This is the classic pattern every LSPosed module uses and it is
+ *     the only signal that proves scope + module activation are both set up.
+ *  2. **Runtime class probe.** If the hook never ran (e.g. the module's
+ *     hook process-load happens after UI inflation) we fall back to probing
+ *     for `de.robv.android.xposed.XposedBridge` on the app's class loader. On
+ *     devices where LSPosed has scoped Hapticks, that class is live in our
+ *     process. On stock devices it does not exist.
+ *
+ * The old code only checked (1) and only flipped the flag via the hook — so
+ * any ordering hiccup made the UI incorrectly show "LSPosed not active". The
+ * probe fallback keeps us honest on real devices without introducing false
+ * positives on vanilla Android.
  */
 object EdgeHapticsBridge {
 
-    /** Fully-qualified name of the Xposed class we probe via reflection. */
-    private const val XPOSED_BRIDGE_CLASS = "de.robv.android.xposed.XposedBridge"
-
     enum class AvailabilityStatus {
-        /** Hook is live in this process and ready to fire. */
         READY,
-
-        /** No root / no su binary detected. Module cannot be activated. */
         ROOT_MISSING,
-
-        /** Rooted, but LSPosed has not loaded our module into this process. */
         LSPOSED_INACTIVE,
     }
 
     sealed class TestResult {
-        /** The receiver-side vibrator fired the edge pattern successfully. */
         object Fired : TestResult()
-
-        /** The feature is currently unavailable; UI should surface [reason]. */
         data class Unavailable(val reason: AvailabilityStatus) : TestResult()
-
-        /** Device has no vibrator hardware. */
         object NoVibrator : TestResult()
     }
 
-    /**
-     * Snapshot the current availability. Cheap (< 1 ms): a `Class.forName` plus a
-     * handful of `File.exists()` checks. Cache externally if you call it at UI
-     * render frequency.
-     */
     fun isAvailable(): AvailabilityStatus {
         val rooted = isDeviceRooted()
         val xposedActive = isXposedActive()
@@ -69,27 +58,49 @@ object EdgeHapticsBridge {
         }
     }
 
-    /** True iff LSPosed has injected the Xposed bridge class into this process. */
-    fun isXposedActive(): Boolean = try {
-        Class.forName(XPOSED_BRIDGE_CLASS)
-        true
-    } catch (_: ClassNotFoundException) {
-        false
-    } catch (_: Throwable) {
-        false
+    /**
+     * Hook target. LSPosed rewrites the return value to `true` as soon as the
+     * module is loaded inside the Hapticks process. Kept as a regular method
+     * (not `const`/inline) so Xposed can find and hook it.
+     *
+     * `@JvmStatic` so the compiled artifact is a plain static method on
+     * [EdgeHapticsBridge] — LSPosed's `findAndHookMethod` binds to it without
+     * having to walk the synthetic `INSTANCE` field first, which eliminates a
+     * class of "hook failed: method not found" edge cases.
+     */
+    @JvmStatic
+    fun isModuleActive(): Boolean = false
+
+    fun isXposedActive(): Boolean {
+        if (isModuleActive()) return true
+        return isXposedClassLoadable()
     }
 
-    /**
-     * Heuristic root probe: look for the standard `su` locations and the Magisk daemon
-     * binary. Intentionally conservative; a missed detection just shows the user
-     * "LSPosed inactive" instead of "root missing", which is still actionable.
-     */
+    private fun isXposedClassLoadable(): Boolean {
+        val loader = EdgeHapticsBridge::class.java.classLoader ?: return false
+        for (name in XPOSED_PROBE_CLASSES) {
+            try {
+                Class.forName(name, false, loader)
+                return true
+            } catch (_: Throwable) {
+                // try next candidate
+            }
+        }
+        return false
+    }
+
     fun isDeviceRooted(): Boolean {
         for (path in SU_PATHS) {
             if (File(path).exists()) return true
         }
         return false
     }
+
+    private val XPOSED_PROBE_CLASSES = arrayOf(
+        "de.robv.android.xposed.XposedBridge",
+        "de.robv.android.xposed.XposedHelpers",
+        "org.lsposed.lspd.core.ApplicationServiceClient",
+    )
 
     private val SU_PATHS = arrayOf(
         "/system/bin/su",
@@ -102,22 +113,14 @@ object EdgeHapticsBridge {
         "/sbin/magisk",
     )
 
-    /** Name of the SharedPreferences file readable cross-process by the LSPosed hook. */
     const val XPOSED_PREFS_NAME = "hapticks_xposed"
-
-    /** Key inside [XPOSED_PREFS_NAME] that the hook reads via [android.content.SharedPreferences]. */
     const val KEY_EDGE_ENABLED = "edge_enabled"
-
-    /** Key for the haptic pattern selection in [XPOSED_PREFS_NAME]. */
     const val KEY_EDGE_PATTERN = "edge_pattern"
-
-    /** Key for the haptic intensity selection in [XPOSED_PREFS_NAME]. */
     const val KEY_EDGE_INTENSITY = "edge_intensity"
 
-    /** Persist the master enable flag. Callers should do this off the main thread. */
     suspend fun enable(context: Context) {
         val prefs = context.hapticks().preferences
-        prefs.setEdgeEnabled(true)
+        prefs.setEdgeEnabled(enabled = true)
         val s = prefs.settings.first()
         writeXposedSettings(context, true, s.edgePattern, s.edgeIntensity)
     }
@@ -129,7 +132,6 @@ object EdgeHapticsBridge {
         writeXposedSettings(context, false, s.edgePattern, s.edgeIntensity)
     }
 
-    /** Update only the pattern. Callers should do this off the main thread. */
     suspend fun updatePattern(context: Context, pattern: HapticPattern) {
         val prefs = context.hapticks().preferences
         prefs.setEdgePattern(pattern)
@@ -137,7 +139,6 @@ object EdgeHapticsBridge {
         writeXposedSettings(context, s.edgeEnabled, pattern, s.edgeIntensity)
     }
 
-    /** Update only the intensity. Callers should do this off the main thread. */
     suspend fun updateIntensity(context: Context, intensity: Float) {
         val prefs = context.hapticks().preferences
         prefs.setEdgeIntensity(intensity)
@@ -145,15 +146,15 @@ object EdgeHapticsBridge {
         writeXposedSettings(context, s.edgeEnabled, s.edgePattern, intensity)
     }
 
-    /**
-     * Mirror the settings into a classic SharedPreferences file and mark it world-readable so
-     * `XSharedPreferences` in the LSPosed-loaded [EdgeScrollHooks] can read it from any
-     * hooked process. This is the standard Xposed/LSPosed IPC shim for module settings.
-     *
-     * World-readable shared prefs are deprecated on N+ for third-party use, but LSPosed
-     * explicitly supports this pattern and file-mode `0644` on the generated `.xml` is
-     * what makes the cross-process read possible.
-     */
+    suspend fun syncXposedPrefs(context: Context) {
+        try {
+            val s = context.hapticks().preferences.settings.first()
+            writeXposedSettings(context, s.edgeEnabled, s.edgePattern, s.edgeIntensity)
+        } catch (t: Throwable) {
+            Log.w(TAG, "syncXposedPrefs failed", t)
+        }
+    }
+
     @SuppressLint("WorldReadableFiles")
     private fun writeXposedSettings(
         context: Context,
@@ -161,70 +162,71 @@ object EdgeHapticsBridge {
         pattern: HapticPattern,
         intensity: Float,
     ) {
-        try {
-            val app = context.applicationContext
+        val app = context.applicationContext
+        // MODE_WORLD_READABLE is required on stock Android for XSharedPreferences
+        // reads to succeed in a hooked target process. On Android P+ the flag
+        // throws SecurityException; LSPosed intercepts that and patches the
+        // file mode itself — but the call must still be attempted. On devices
+        // without LSPosed the fallback block below forces the file to be
+        // world-readable via POSIX perms so that if LSPosed is installed later
+        // reads keep working.
+        val persisted = runCatching {
             @Suppress("DEPRECATION")
             val prefs = app.getSharedPreferences(XPOSED_PREFS_NAME, Context.MODE_WORLD_READABLE)
-            prefs.edit()
-                .putBoolean(KEY_EDGE_ENABLED, enabled)
-                .putString(KEY_EDGE_PATTERN, pattern.name)
-                .putFloat(KEY_EDGE_INTENSITY, intensity)
-                .commit()
-        } catch (se: SecurityException) {
-            // Some OEM SELinux profiles refuse MODE_WORLD_READABLE on N+. Fall back to
-            // writing via MODE_PRIVATE and chmod'ing the resulting file. Best-effort.
+            prefs.edit(commit = true) {
+                putBoolean(KEY_EDGE_ENABLED, enabled)
+                putString(KEY_EDGE_PATTERN, pattern.name)
+                putFloat(KEY_EDGE_INTENSITY, intensity)
+            }
+            true
+        }.getOrElse { false }
+
+        if (!persisted) {
             try {
-                val app = context.applicationContext
                 val prefs = app.getSharedPreferences(XPOSED_PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit()
-                    .putBoolean(KEY_EDGE_ENABLED, enabled)
-                    .putString(KEY_EDGE_PATTERN, pattern.name)
-                    .putFloat(KEY_EDGE_INTENSITY, intensity)
-                    .commit()
-                val prefsFile = File(
-                    app.dataDir,
-                    "shared_prefs/$XPOSED_PREFS_NAME.xml",
-                )
-                if (prefsFile.exists()) {
-                    @Suppress("SetWorldReadable")
-                    prefsFile.setReadable(true, false)
-                    prefsFile.parentFile?.setReadable(true, false)
-                    prefsFile.parentFile?.setExecutable(true, false)
+                prefs.edit(commit = true) {
+                    putBoolean(KEY_EDGE_ENABLED, enabled)
+                    putString(KEY_EDGE_PATTERN, pattern.name)
+                    putFloat(KEY_EDGE_INTENSITY, intensity)
                 }
             } catch (t: Throwable) {
                 Log.w(TAG, "failed to persist xposed flag", t)
+                return
             }
+        }
+
+        try {
+            val prefsFile = File(app.dataDir, "shared_prefs/$XPOSED_PREFS_NAME.xml")
+            if (prefsFile.exists()) {
+                @Suppress("SetWorldReadable")
+                prefsFile.setReadable(true, false)
+                prefsFile.parentFile?.setReadable(true, false)
+                prefsFile.parentFile?.setExecutable(true, false)
+            }
+            @Suppress("SetWorldReadable")
+            app.dataDir.setExecutable(true, false)
         } catch (t: Throwable) {
-            Log.w(TAG, "failed to persist xposed flag", t)
+            Log.w(TAG, "failed to relax prefs permissions", t)
         }
     }
 
     /**
-     * Fire the edge haptic pattern on demand so the user can preview the feel from
-     * the Edge Haptics screen. When the feature is unavailable this returns a clear
-     * status instead of silently no-op'ing; the UI can then render a hint.
-     *
-     * Unlike the hook-driven path, this call is made from *the Hapticks process*,
-     * so it always has VIBRATE and does not need the broadcast fallback. We still
-     * respect the availability cascade so the test button visibly mirrors what the
-     * real feature will do once the user scrolls a list in another app.
+     * Fires the edge haptic *locally* inside the Hapticks process. We always
+     * have [android.Manifest.permission.VIBRATE] here, so the test is useful
+     * even when LSPosed is not active yet — it lets the user preview the
+     * pattern/intensity they picked before wiring up LSPosed scope.
      */
     fun testEdgeHaptic(context: Context): TestResult {
-        val status = isAvailable()
-        if (status != AvailabilityStatus.READY) {
-            return TestResult.Unavailable(status)
-        }
         val vibrator = resolveVibrator(context) ?: return TestResult.NoVibrator
         if (!vibrator.hasVibrator()) return TestResult.NoVibrator
 
         val attrs = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
         return try {
             val hapticksApp = context.applicationContext as HapticksApp
-            // Block on first() to get the current selected pattern for the test fire.
-            val s = kotlinx.coroutines.runBlocking<HapticsSettings> {
+            val s = kotlinx.coroutines.runBlocking {
                 hapticksApp.preferences.settings.first()
             }
-            vibrator.vibrate(EdgeVibrator.edgeEffect(context, s.edgePattern, s.edgeIntensity), attrs)
+            vibrator.vibrate(EdgeVibrator.edgeEffect(s.edgePattern, s.edgeIntensity), attrs)
             TestResult.Fired
         } catch (_: Throwable) {
             TestResult.NoVibrator

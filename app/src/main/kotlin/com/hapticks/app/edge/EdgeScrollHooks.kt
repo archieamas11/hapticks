@@ -15,30 +15,26 @@ import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 /**
- * LSPosed module entry point. Declared in `assets/xposed_init`.
+ * LSPosed / Xposed entry point for Hapticks Edge Haptics.
  *
- * Responsibilities:
- *  - Skip our own package so Hapticks does not hook itself.
- *  - Load the cross-process enable flag via [XSharedPreferences] with a 5 s TTL refresh,
- *    so toggling the Edge Haptics switch in the Hapticks UI takes effect in already-
- *    running hooked apps within a few seconds instead of requiring a restart.
- *  - Install the three hook families required by the spec:
- *      1. `RecyclerView.dispatchOnScrollStateChanged(int)`: the central chokepoint every
- *         scroll-state transition flows through (functionally equivalent to attaching a
- *         global `OnScrollListener` via `setAdapter`, but without needing to subclass the
- *         listener's abstract class). On `SCROLL_STATE_IDLE`, inspect
- *         `canScrollVertically(-1/+1)` to detect the exact top/bottom edge.
- *      2. `ScrollView.onScrollChanged` & `NestedScrollView.onScrollChanged`: compare
- *         `scrollY` against `0` and `scrollY + height` against the child's total height.
- *      3. `WebView.onScrollChanged`: compare `scrollY` against `contentHeight * scale`.
+ * Wiring:
+ *  - `app/src/main/assets/xposed_init` points LSPosed at this class.
+ *  - `AndroidManifest.xml` advertises the module (xposedmodule = true,
+ *    xposedminversion = 93 which every LSPosed 1.x / 2026 build reports).
+ *  - `res/values/xposed_scope.xml` lists the default recommended scope.
  *
- * All three converge on [EdgeDetector.Shared] and [EdgeVibrator.play], so the 500 ms
- * debounce and `TOP <-> BOTTOM` transition logic are consistent regardless of which
- * hook fired.
+ * What it does inside each scoped process:
+ *  - When the hooked process is *our own* (`com.hapticks.app`) it overrides
+ *    [EdgeHapticsBridge.isModuleActive] to return `true`, which is how the
+ *    app's UI detects "LSPosed actually injected us".
+ *  - For every other process it hooks the relevant scroll surface methods
+ *    (RecyclerView, ScrollView, AndroidX NestedScrollView, WebView, and the
+ *    low-level [View.overScrollBy]) and fires [EdgeVibrator.play] when the
+ *    view reports it cannot scroll any further.
  *
- * This class is the only file in the module that references `de.robv.android.xposed.*`.
- * When the Xposed API JAR is not vendored, the Gradle build excludes this source file
- * from compilation (see `app/build.gradle.kts`) and the rest of the app is unaffected.
+ * Everything is defensive — any failure to hook a single surface logs and
+ * continues so a missing class or an obfuscated implementation never prevents
+ * the other hooks from installing.
  */
 class EdgeScrollHooks : IXposedHookLoadPackage {
 
@@ -46,76 +42,83 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
     @Volatile private var pattern: HapticPattern = HapticPattern.TICK
     @Volatile private var intensity: Float = 1.0f
     @Volatile private var lastPrefCheckMs: Long = 0L
-    private lateinit var sharedPrefs: XSharedPreferences
+    @Volatile private var sharedPrefs: XSharedPreferences? = null
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName == OWN_PACKAGE) return
+        try {
+            if (lpparam.packageName == OWN_PACKAGE) {
+                hookOwnActivationStub(lpparam)
+                // Self-process does not need scroll hooks; UI handles its own haptics.
+                return
+            }
 
-        initSharedPrefs()
-        if (!isEnabled()) {
-            XposedBridge.log("$TAG: edge haptics disabled by user, skipping ${lpparam.packageName}")
-            return
+            initSharedPrefs()
+            // We install hooks unconditionally and re-read the enabled flag on
+            // every callback — otherwise toggling "Enable Edge Haptics" in the
+            // UI while an app is already running would have no effect until
+            // the app was restarted.
+            hookRecyclerView(lpparam)
+            hookScrollView(lpparam)
+            hookNestedScrollView(lpparam)
+            hookWebView(lpparam)
+            hookOverScrollBy(lpparam)
+        } catch (t: Throwable) {
+            XposedBridge.log("$TAG: handleLoadPackage failed for ${lpparam.packageName}: $t")
         }
+    }
 
-        hookRecyclerView(lpparam)
-        hookScrollView(lpparam)
-        hookNestedScrollView(lpparam)
-        hookWebView(lpparam)
+    private fun hookOwnActivationStub(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                "com.hapticks.app.edge.EdgeHapticsBridge",
+                lpparam.classLoader,
+                "isModuleActive",
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        param.result = true
+                    }
+                },
+            )
+            XposedBridge.log("$TAG: activation stub hooked in own process")
+        } catch (t: Throwable) {
+            XposedBridge.log("$TAG: activation stub hook failed: ${t.message}")
+        }
     }
 
     private fun initSharedPrefs() {
-        sharedPrefs = XSharedPreferences(OWN_PACKAGE, EdgeHapticsBridge.XPOSED_PREFS_NAME).apply {
-            @Suppress("DEPRECATION")
-            makeWorldReadable()
+        if (sharedPrefs != null) return
+        try {
+            sharedPrefs = XSharedPreferences(OWN_PACKAGE, EdgeHapticsBridge.XPOSED_PREFS_NAME).also { prefs ->
+                @Suppress("DEPRECATION")
+                try { prefs.makeWorldReadable() } catch (_: Throwable) { /* LSPosed 1.x no-ops this */ }
+            }
+            refreshPrefs()
+        } catch (t: Throwable) {
+            XposedBridge.log("$TAG: prefs init failed: ${t.message}")
         }
-        refreshPrefs(force = true)
     }
 
     private fun isEnabled(): Boolean {
         val now = SystemClock.uptimeMillis()
-        if (now - lastPrefCheckMs > PREF_TTL_MS) refreshPrefs(force = false)
+        if (now - lastPrefCheckMs > PREF_TTL_MS) refreshPrefs()
         return enabled
     }
 
-    private fun refreshPrefs(@Suppress("UNUSED_PARAMETER") force: Boolean) {
+    private fun refreshPrefs() {
+        val prefs = sharedPrefs ?: return
         try {
-            // XSharedPreferences doesn't watch the file, so we explicitly reload. `reload()`
-            // is a no-op fast path when the mtime hasn't changed, so this is safe to call
-            // on every TTL tick.
-            sharedPrefs.reload()
-            enabled = sharedPrefs.getBoolean(EdgeHapticsBridge.KEY_EDGE_ENABLED, true)
-            val patternName = XposedHelpers.callMethod(
-                sharedPrefs,
-                "getString",
-                EdgeHapticsBridge.KEY_EDGE_PATTERN,
-                "TICK"
-            ) as String
+            prefs.reload()
+            enabled = prefs.getBoolean(EdgeHapticsBridge.KEY_EDGE_ENABLED, true)
+            val patternName = prefs.getString(EdgeHapticsBridge.KEY_EDGE_PATTERN, "TICK") ?: "TICK"
             pattern = HapticPattern.fromStorageKey(patternName)
-            intensity = XposedHelpers.callMethod(
-                sharedPrefs,
-                "getFloat",
-                EdgeHapticsBridge.KEY_EDGE_INTENSITY,
-                1.0f
-            ) as Float
+            intensity = prefs.getFloat(EdgeHapticsBridge.KEY_EDGE_INTENSITY, 1.0f)
             lastPrefCheckMs = SystemClock.uptimeMillis()
         } catch (t: Throwable) {
             XposedBridge.log("$TAG: prefs reload failed: ${t.message}")
         }
     }
 
-    // ------------------------------------------------------------------
-    // RecyclerView
-    // ------------------------------------------------------------------
-
     private fun hookRecyclerView(lpparam: XC_LoadPackage.LoadPackageParam) {
-        // The user's spec calls for hooking `setAdapter` and attaching an OnScrollListener.
-        // Because `RecyclerView.OnScrollListener` is an abstract class (not an interface), we
-        // cannot implement it via `java.lang.reflect.Proxy` from the module JAR. Instead we
-        // achieve an equivalent effect by hooking `dispatchOnScrollStateChanged(int)` —
-        // RecyclerView itself calls this from `setScrollState`, and it is the single
-        // chokepoint through which every scroll-state transition flows before any
-        // listener sees it. Result: pixel-perfect edge detection on every IDLE state,
-        // no abstract-class subclassing needed.
         for (className in RV_CLASS_CANDIDATES) {
             val rvClass = XposedHelpers.findClassIfExists(className, lpparam.classLoader) ?: continue
             try {
@@ -135,7 +138,6 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
                     },
                 )
                 XposedBridge.log("$TAG: hooked $className in ${lpparam.packageName}")
-                // First candidate that resolved wins; don't double-hook a shaded second copy.
                 return
             } catch (t: Throwable) {
                 XposedBridge.log("$TAG: RecyclerView hook failed on $className: ${t.message}")
@@ -143,11 +145,7 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         }
     }
 
-    // ------------------------------------------------------------------
-    // ScrollView / NestedScrollView
-    // ------------------------------------------------------------------
-
-    private fun hookScrollView(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookScrollView(@Suppress("UNUSED_PARAMETER") lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             XposedHelpers.findAndHookMethod(
                 ScrollView::class.java, "onScrollChanged",
@@ -191,10 +189,6 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         }
     }
 
-    // ------------------------------------------------------------------
-    // WebView
-    // ------------------------------------------------------------------
-
     private fun hookWebView(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             XposedHelpers.findAndHookMethod(
@@ -214,8 +208,6 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
             val wv = param.thisObject as? WebView ?: return
             val scrollY = (param.args[1] as? Int) ?: wv.scrollY
             val scale = try {
-                // WebView.getScale() is deprecated but still returns the live zoom; prefer it
-                // when available, fall back to 1.0f on the rare WebView impls that throw.
                 @Suppress("DEPRECATION")
                 wv.scale
             } catch (_: Throwable) {
@@ -229,14 +221,51 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Shared edge dispatch
-    // ------------------------------------------------------------------
+    /**
+     * [View.overScrollBy] is the single chokepoint every AOSP-derived scroll
+     * container calls *after* clamping the scroll delta — Compose's
+     * interop view, androidx.core NestedScrollView, Jetpack Paging grids,
+     * Chromium's scroller, etc. Hooking it gives us edge coverage for the
+     * long tail of custom scroll surfaces that don't route through
+     * RecyclerView/ScrollView/NestedScrollView/WebView.
+     *
+     * Signature:
+     * ```
+     * protected boolean overScrollBy(int deltaX, int deltaY, int scrollX, int scrollY,
+     *     int scrollRangeX, int scrollRangeY, int maxOverScrollX, int maxOverScrollY,
+     *     boolean isTouchEvent)
+     * ```
+     */
+    private fun hookOverScrollBy(@Suppress("UNUSED_PARAMETER") lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                View::class.java, "overScrollBy",
+                Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        if (!isEnabled()) return
+                        val view = param.thisObject as? View ?: return
+                        val isTouch = (param.args[8] as? Boolean) ?: return
+                        if (!isTouch) return
+                        val atTop = !view.canScrollVertically(-1)
+                        val atBottom = !view.canScrollVertically(1)
+                        if (!atTop && !atBottom) return
+                        dispatchEdge(view.context, atTop, atBottom)
+                    }
+                },
+            )
+            XposedBridge.log("$TAG: hooked View.overScrollBy")
+        } catch (t: Throwable) {
+            XposedBridge.log("$TAG: View.overScrollBy hook failed: ${t.message}")
+        }
+    }
 
     private fun dispatchEdge(context: Context, atTop: Boolean, atBottom: Boolean) {
         if (!atTop && !atBottom) return
-        // Rare case: a tiny content height below the viewport makes both true. Prefer TOP
-        // so the user gets a consistent sensation regardless of which first reached zero.
         val edge = if (atTop) Edge.TOP else Edge.BOTTOM
         val decision = EdgeDetector.Shared.detect(edge, SystemClock.uptimeMillis())
         if (decision == EdgeDetector.Decision.FIRE) {
@@ -248,10 +277,8 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         const val TAG = "HapticksEdgeHooks"
         const val OWN_PACKAGE = "com.hapticks.app"
 
-        /** Millis between XSharedPreferences re-reads. Cheap (an in-process file stat). */
-        const val PREF_TTL_MS = 5_000L
+        const val PREF_TTL_MS = 2_000L
 
-        /** RecyclerView.SCROLL_STATE_IDLE — avoids a hard dep on the RV class. */
         const val STATE_IDLE = 0
 
         val RV_CLASS_CANDIDATES = arrayOf(

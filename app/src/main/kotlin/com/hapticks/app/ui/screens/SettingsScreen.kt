@@ -1,7 +1,7 @@
 package com.hapticks.app.ui.screens
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -32,7 +32,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Brightness6
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
@@ -172,7 +171,7 @@ fun SettingsScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://github.com/archieamas11/expand-haptics"),
+                                "https://github.com/archieamas11/expand-haptics".toUri(),
                             )
                             context.startActivity(intent)
                         },
@@ -273,7 +272,7 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
             )
             .padding(horizontal = 18.dp)
             .padding(verticalPadding),
@@ -306,9 +305,9 @@ private fun SettingsRow(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (subtitle != null) {
+            subtitle?.let {
                 Text(
-                    text = subtitle,
+                    text = it,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -20,18 +20,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * UI state for [com.hapticks.app.ui.screens.EdgeHapticsScreen].
- *
- * Owns:
- *  - The user-facing `edgeEnabled` flag (mirrors [HapticsSettings.edgeEnabled]).
- *  - The live [EdgeHapticsBridge.AvailabilityStatus] so the screen can render the
- *    correct hero banner (ready / no root / no LSPosed).
- *  - A one-shot [testEvent] flow for transient UI messages after the test button.
- *
- * The availability probe is cheap (a class lookup + a handful of File.exists calls)
- * but we still do it off the main thread to keep the Compose first-frame budget clean.
- */
 class EdgeHapticsViewModel(
     application: Application,
     private val preferences: HapticsPreferences,
@@ -59,6 +47,9 @@ class EdgeHapticsViewModel(
 
     init {
         refreshAvailability()
+        viewModelScope.launch(Dispatchers.IO) {
+            EdgeHapticsBridge.syncXposedPrefs(getApplication())
+        }
     }
 
     fun refreshAvailability() {

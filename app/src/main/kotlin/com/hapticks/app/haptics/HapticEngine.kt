@@ -65,25 +65,25 @@ class HapticEngine(context: Context) {
         if (!hasVibrator) return false
 
         val now = SystemClock.uptimeMillis()
-        if (throttleMs > 0L && now - lastFiredAt < throttleMs) return false
+        if (throttleMs > 0L && (now - lastFiredAt < throttleMs)) return false
 
         if (intensity <= MIN_AUDIBLE_INTENSITY) return false
         val clamped = if (intensity > 1f) 1f else intensity
 
-        val effect = effectFor(pattern, clamped) ?: return false
+        val effect = effectFor(pattern, clamped)
         lastFiredAt = now
         vibrator.vibrate(effect, touchAttrs)
         return true
     }
 
-    private fun effectFor(pattern: HapticPattern, intensity: Float): VibrationEffect? {
+    private fun effectFor(pattern: HapticPattern, intensity: Float): VibrationEffect {
         val bucket = ((intensity * (INTENSITY_BUCKETS - 1)) + 0.5f).toInt()
             .coerceIn(0, INTENSITY_BUCKETS - 1)
         val key = pattern.ordinal * INTENSITY_BUCKETS + bucket
         effectCache[key]?.let { return it }
 
         val bucketIntensity = bucket.toFloat() / (INTENSITY_BUCKETS - 1)
-        val built = buildEffect(pattern, bucketIntensity) ?: return null
+        val built = buildEffect(pattern, bucketIntensity)
         // putIfAbsent: on a race the other thread's instance is kept; we don't care which one.
         return effectCache.putIfAbsent(key, built) ?: built
     }
@@ -156,13 +156,14 @@ class HapticEngine(context: Context) {
         fun primitivesRequired(pattern: HapticPattern): IntArray = when (pattern) {
             HapticPattern.CLICK,
             HapticPattern.HEAVY_CLICK,
-            HapticPattern.DOUBLE_CLICK -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_CLICK)
+            HapticPattern.DOUBLE_CLICK ->
+                intArrayOf(VibrationEffect.Composition.PRIMITIVE_CLICK)
             HapticPattern.TICK -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_TICK)
             HapticPattern.SOFT_BUMP -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_LOW_TICK)
             HapticPattern.DOUBLE_TICK -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_TICK)
             HapticPattern.TENSION_RELEASE -> intArrayOf(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                VibrationEffect.Composition.PRIMITIVE_CLICK
+                VibrationEffect.Composition.PRIMITIVE_CLICK,
             )
         }
     }

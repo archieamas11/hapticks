@@ -42,12 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
 import com.hapticks.app.haptics.HapticPattern
 
-/**
- * Two-column grid of illustrated pattern cards. Replaces the earlier chip row to give each
- * pattern its own visual identity, description, and tactile selection affordance. Uses
- * Compose primitives (no LazyVerticalGrid) so it composes cleanly inside a parent `Column`
- * and plays nicely with vertical scrolling.
- */
 @Composable
 fun PatternSelector(
     selected: HapticPattern,

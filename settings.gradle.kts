@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Hapticks"
 include(":app")
+include(":xposed-api")

@@ -17,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hapticks.app.data.HapticsSettings
 import com.hapticks.app.data.ThemeMode
 import com.hapticks.app.ui.components.BottomTab
 import com.hapticks.app.ui.components.FloatingBottomBar
@@ -96,12 +95,12 @@ class MainActivity : ComponentActivity() {
                                 settings = settings,
                                 onUseDynamicColorsChange = viewModel::setUseDynamicColors,
                                 onThemeModeChange = viewModel::setThemeMode,
-                                onSeedColorChange = viewModel::setSeedColor
+                                onSeedColorChange = viewModel::setSeedColor,
                             )
                         }
                     }
 
-                    if (route == Route.HOME || route == Route.SETTINGS) {
+                    if ((route == Route.HOME) || (route == Route.SETTINGS)) {
                         FloatingBottomBar(
                             selectedTab = if (route == Route.HOME) BottomTab.HOME else BottomTab.SETTINGS,
                             onTabSelected = { tab ->
@@ -117,11 +116,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // User may have toggled the service while away; re-check so the onboarding banner hides
-        // itself once enabled without a cold restart.
         viewModel.refreshServiceState()
-        // LSPosed state can change out-of-band (module enabled/disabled, scope changed) so
-        // re-probe availability whenever the screen returns to the foreground.
         edgeViewModel.refreshAvailability()
     }
 

@@ -21,14 +21,6 @@ import java.io.IOException
 
 private val Context.hapticsDataStore: DataStore<Preferences> by preferencesDataStore(name = "hapticks")
 
-/**
- * Thin repository over DataStore preferences. Reads from the same store the accessibility
- * service uses, so UI changes are reflected in the service without any IPC glue.
- *
- * All reads recover gracefully from [IOException] (e.g. preferences file corruption) by
- * emitting an empty snapshot; that way a single read failure cannot kill the accessibility
- * service's collector.
- */
 class HapticsPreferences(context: Context) {
 
     private val dataStore = context.applicationContext.hapticsDataStore
@@ -77,12 +69,6 @@ class HapticsPreferences(context: Context) {
     suspend fun setUseDynamicColors(enabled: Boolean) = edit { it[Keys.USE_DYNAMIC_COLORS] = enabled }
     suspend fun setThemeMode(mode: ThemeMode) = edit { it[Keys.THEME_MODE] = mode.name }
     suspend fun setSeedColor(color: Int) = edit { it[Keys.SEED_COLOR] = color }
-
-    /**
-     * Single-shot read of the edge-enabled flag. Used by [com.hapticks.app.edge.EdgeHapticReceiver]
-     * which must decide synchronously whether a broadcast should trigger vibration.
-     */
-    suspend fun isEdgeEnabledOnce(): Boolean = settings.first().edgeEnabled
 
     /**
      * Single-shot read of the edge settings. Used by [com.hapticks.app.edge.EdgeHapticReceiver].

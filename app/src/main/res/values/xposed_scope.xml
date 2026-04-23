@@ -1,10 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        Default LSPosed scope. Users can always add more in the LSPosed
+        manager after install — these are just the high-value targets that
+        Edge Haptics should cover out of the box.
+
+        `com.hapticks.app` itself is deliberately listed first: without it
+        LSPosed will not inject into our own process, which means the
+        `isModuleActive` activation stub never flips and the UI would
+        incorrectly report "LSPosed not active". Some LSPosed builds already
+        self-scope the module package, but listing it here guarantees the
+        behavior across every fork.
+    -->
     <string-array name="xposed_scope" translatable="false">
+        <item>com.hapticks.app</item>
         <item>android</item>
         <item>com.android.systemui</item>
         <item>com.android.settings</item>
         <item>com.google.android.googlequicksearchbox</item>
         <item>com.android.chrome</item>
+        <item>com.chrome.beta</item>
+        <item>com.chrome.dev</item>
+        <item>com.chrome.canary</item>
+        <item>org.mozilla.firefox</item>
+        <item>com.microsoft.emmx</item>
+        <item>com.brave.browser</item>
+        <item>com.opera.browser</item>
+        <item>com.sec.android.app.sbrowser</item>
+        <item>com.duckduckgo.mobile.android</item>
+        <item>com.google.android.apps.messaging</item>
+        <item>com.google.android.gm</item>
+        <item>com.google.android.youtube</item>
+        <item>com.reddit.frontpage</item>
+        <item>com.twitter.android</item>
+        <item>com.instagram.android</item>
     </string-array>
 </resources>

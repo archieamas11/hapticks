@@ -147,8 +147,11 @@ fun EdgeHapticsScreen(
                 )
             }
 
+            // The test button previews the pattern locally (Hapticks has
+            // VIBRATE), so we only gate it on the master toggle — users can
+            // still tune intensity/pattern before finishing LSPosed setup.
             TestEdgeButton(
-                enabled = availability == EdgeHapticsBridge.AvailabilityStatus.READY && settings.edgeEnabled,
+                enabled = settings.edgeEnabled,
                 onClick = onTestEdgeHaptic,
             )
 

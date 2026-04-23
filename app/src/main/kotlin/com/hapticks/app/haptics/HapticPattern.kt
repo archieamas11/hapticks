@@ -20,7 +20,7 @@ import com.hapticks.app.R
  * rendered in the selector grid.
  */
 enum class HapticPattern(
-    @StringRes val labelRes: Int,
+    @get:StringRes val labelRes: Int,
     @StringRes val descriptionRes: Int,
     val icon: ImageVector,
 ) {

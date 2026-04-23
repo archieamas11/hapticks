@@ -25,10 +25,6 @@ class EdgeHapticReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != EdgeVibrator.ACTION_EDGE_HAPTIC) return
 
-        // Re-check the user preference inside the receiver. A rogue broadcast from a
-        // third-party app should not be able to buzz the device if the user has
-        // disabled Edge Haptics. We read the flag synchronously from DataStore via
-        // the application singleton — the call is off the hot path of the hook.
         val (enabled, pattern, intensity) = try {
             val app = context.applicationContext as? HapticksApp
             app?.let { runBlocking { it.preferences.getEdgeSettingsOnce() } }
@@ -42,7 +38,6 @@ class EdgeHapticReceiver : BroadcastReceiver() {
         val vibrator = resolveVibrator(context) ?: return
         if (!vibrator.hasVibrator()) return
 
-        // Prefer the pattern/intensity from the intent (fresher) but fall back to the one from preferences.
         val intentPatternName = intent.getStringExtra(EdgeVibrator.EXTRA_PATTERN)
         val finalPattern = intentPatternName?.let {
             com.hapticks.app.haptics.HapticPattern.fromStorageKey(it)
@@ -50,7 +45,7 @@ class EdgeHapticReceiver : BroadcastReceiver() {
 
         val finalIntensity = intent.getFloatExtra(EdgeVibrator.KEY_EDGE_INTENSITY, intensity)
 
-        val effect = EdgeVibrator.edgeEffect(context, finalPattern, finalIntensity)
+        val effect = EdgeVibrator.edgeEffect(finalPattern, finalIntensity)
         val attrs = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
         try {
             vibrator.vibrate(effect, attrs)
