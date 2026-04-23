@@ -14,28 +14,6 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-/**
- * LSPosed / Xposed entry point for Hapticks Edge Haptics.
- *
- * Wiring:
- *  - `app/src/main/assets/xposed_init` points LSPosed at this class.
- *  - `AndroidManifest.xml` advertises the module (xposedmodule = true,
- *    xposedminversion = 93 which every LSPosed 1.x / 2026 build reports).
- *  - `res/values/xposed_scope.xml` lists the default recommended scope.
- *
- * What it does inside each scoped process:
- *  - When the hooked process is *our own* (`com.hapticks.app`) it overrides
- *    [EdgeHapticsBridge.isModuleActive] to return `true`, which is how the
- *    app's UI detects "LSPosed actually injected us".
- *  - For every other process it hooks the relevant scroll surface methods
- *    (RecyclerView, ScrollView, AndroidX NestedScrollView, WebView, and the
- *    low-level [View.overScrollBy]) and fires [EdgeVibrator.play] when the
- *    view reports it cannot scroll any further.
- *
- * Everything is defensive — any failure to hook a single surface logs and
- * continues so a missing class or an obfuscated implementation never prevents
- * the other hooks from installing.
- */
 class EdgeScrollHooks : IXposedHookLoadPackage {
 
     @Volatile private var enabled: Boolean = true
@@ -43,6 +21,8 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
     @Volatile private var intensity: Float = 1.0f
     @Volatile private var lastPrefCheckMs: Long = 0L
     @Volatile private var sharedPrefs: XSharedPreferences? = null
+
+    private val freshPullState: ThreadLocal<Boolean> = ThreadLocal()
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
@@ -53,15 +33,12 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
             }
 
             initSharedPrefs()
-            // We install hooks unconditionally and re-read the enabled flag on
-            // every callback — otherwise toggling "Enable Edge Haptics" in the
-            // UI while an app is already running would have no effect until
-            // the app was restarted.
             hookRecyclerView(lpparam)
             hookScrollView(lpparam)
             hookNestedScrollView(lpparam)
             hookWebView(lpparam)
             hookOverScrollBy(lpparam)
+            hookEdgeEffect(lpparam)
         } catch (t: Throwable) {
             XposedBridge.log("$TAG: handleLoadPackage failed for ${lpparam.packageName}: $t")
         }
@@ -221,21 +198,6 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         }
     }
 
-    /**
-     * [View.overScrollBy] is the single chokepoint every AOSP-derived scroll
-     * container calls *after* clamping the scroll delta — Compose's
-     * interop view, androidx.core NestedScrollView, Jetpack Paging grids,
-     * Chromium's scroller, etc. Hooking it gives us edge coverage for the
-     * long tail of custom scroll surfaces that don't route through
-     * RecyclerView/ScrollView/NestedScrollView/WebView.
-     *
-     * Signature:
-     * ```
-     * protected boolean overScrollBy(int deltaX, int deltaY, int scrollX, int scrollY,
-     *     int scrollRangeX, int scrollRangeY, int maxOverScrollX, int maxOverScrollY,
-     *     boolean isTouchEvent)
-     * ```
-     */
     private fun hookOverScrollBy(@Suppress("UNUSED_PARAMETER") lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             XposedHelpers.findAndHookMethod(
@@ -271,6 +233,74 @@ class EdgeScrollHooks : IXposedHookLoadPackage {
         if (decision == EdgeDetector.Decision.FIRE) {
             EdgeVibrator.play(context, edge, pattern, intensity)
         }
+    }
+
+    private fun hookEdgeEffect(lpparam: XC_LoadPackage.LoadPackageParam) {
+        val cls = XposedHelpers.findClassIfExists(
+            "android.widget.EdgeEffect", lpparam.classLoader,
+        ) ?: return
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                cls, "onAbsorb",
+                Int::class.javaPrimitiveType,
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        fireEdgeHaptic()
+                    }
+                },
+            )
+            XposedBridge.log("$TAG: hooked EdgeEffect.onAbsorb in ${lpparam.packageName}")
+        } catch (t: Throwable) {
+            XposedBridge.log("$TAG: EdgeEffect.onAbsorb hook failed: ${t.message}")
+        }
+
+        val onPullHook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val fresh = try {
+                    val d = XposedHelpers.callMethod(param.thisObject, "getDistance") as? Float
+                    d == null || d == 0f
+                } catch (_: Throwable) {
+                    true
+                }
+                freshPullState.set(fresh)
+            }
+            override fun afterHookedMethod(param: MethodHookParam) {
+                val fresh = freshPullState.get() ?: false
+                freshPullState.remove()
+                if (fresh) fireEdgeHaptic()
+            }
+        }
+        try {
+            XposedHelpers.findAndHookMethod(
+                cls, "onPull",
+                Float::class.javaPrimitiveType, Float::class.javaPrimitiveType,
+                onPullHook,
+            )
+        } catch (_: Throwable) { /* API variant missing */ }
+        try {
+            XposedHelpers.findAndHookMethod(
+                cls, "onPull",
+                Float::class.javaPrimitiveType,
+                onPullHook,
+            )
+        } catch (_: Throwable) { /* API variant missing */ }
+    }
+
+    private fun fireEdgeHaptic() {
+        if (!isEnabled()) return
+        val ctx = currentAppContext() ?: return
+        val decision = EdgeDetector.Shared.detect(Edge.BOTTOM, SystemClock.uptimeMillis())
+        if (decision == EdgeDetector.Decision.FIRE) {
+            EdgeVibrator.play(ctx, Edge.BOTTOM, pattern, intensity)
+        }
+    }
+
+    private fun currentAppContext(): Context? = try {
+        val at = Class.forName("android.app.ActivityThread")
+        at.getMethod("currentApplication").invoke(null) as? Context
+    } catch (_: Throwable) {
+        null
     }
 
     private companion object {

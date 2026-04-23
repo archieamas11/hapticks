@@ -163,13 +163,6 @@ object EdgeHapticsBridge {
         intensity: Float,
     ) {
         val app = context.applicationContext
-        // MODE_WORLD_READABLE is required on stock Android for XSharedPreferences
-        // reads to succeed in a hooked target process. On Android P+ the flag
-        // throws SecurityException; LSPosed intercepts that and patches the
-        // file mode itself — but the call must still be attempted. On devices
-        // without LSPosed the fallback block below forces the file to be
-        // world-readable via POSIX perms so that if LSPosed is installed later
-        // reads keep working.
         val persisted = runCatching {
             @Suppress("DEPRECATION")
             val prefs = app.getSharedPreferences(XPOSED_PREFS_NAME, Context.MODE_WORLD_READABLE)
@@ -210,12 +203,6 @@ object EdgeHapticsBridge {
         }
     }
 
-    /**
-     * Fires the edge haptic *locally* inside the Hapticks process. We always
-     * have [android.Manifest.permission.VIBRATE] here, so the test is useful
-     * even when LSPosed is not active yet — it lets the user preview the
-     * pattern/intensity they picked before wiring up LSPosed scope.
-     */
     fun testEdgeHaptic(context: Context): TestResult {
         val vibrator = resolveVibrator(context) ?: return TestResult.NoVibrator
         if (!vibrator.hasVibrator()) return TestResult.NoVibrator
