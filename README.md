@@ -25,10 +25,8 @@ Right now, LSPosed is needed to make it work across the whole system. I’m stil
 
 ## Screenshots
 
-```
 ![Home Screen](assets/screenshot-1.png)
 ![Settings](assets/screenshot-2.png)
-```
 
 ## Notes
 
