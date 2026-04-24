@@ -28,7 +28,6 @@ class EdgeHapticsViewModel(
     sealed class TestEvent {
         object Fired : TestEvent()
         object NoVibrator : TestEvent()
-        data class Unavailable(val reason: EdgeHapticsBridge.AvailabilityStatus) : TestEvent()
     }
 
     val settings: StateFlow<HapticsSettings> = preferences.settings
@@ -39,45 +38,32 @@ class EdgeHapticsViewModel(
             initialValue = HapticsSettings.Default,
         )
 
-    private val _availability = MutableStateFlow(EdgeHapticsBridge.AvailabilityStatus.LSPOSED_INACTIVE)
-    val availability: StateFlow<EdgeHapticsBridge.AvailabilityStatus> = _availability.asStateFlow()
-
     private val _testEvent = MutableStateFlow<TestEvent?>(null)
     val testEvent: StateFlow<TestEvent?> = _testEvent.asStateFlow()
 
-    init {
-        refreshAvailability()
-        viewModelScope.launch(Dispatchers.IO) {
-            EdgeHapticsBridge.syncXposedPrefs(getApplication())
-        }
-    }
-
-    fun refreshAvailability() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _availability.value = EdgeHapticsBridge.isAvailable(getApplication())
-        }
-    }
-
-    fun setEdgeEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            preferences.setEdgeEnabled(enabled)
-            if (enabled) {
-                EdgeHapticsBridge.enable(getApplication())
-            } else {
-                EdgeHapticsBridge.disable(getApplication())
-            }
-        }
-    }
-
     fun setEdgePattern(pattern: HapticPattern) {
         viewModelScope.launch {
-            EdgeHapticsBridge.updatePattern(getApplication(), pattern)
+            preferences.setEdgePattern(pattern)
         }
     }
 
     fun setEdgeIntensity(intensity: Float) {
         viewModelScope.launch {
-            EdgeHapticsBridge.updateIntensity(getApplication(), intensity)
+            preferences.setEdgeIntensity(intensity)
+        }
+    }
+
+    fun setA11yScrollBoundEdge(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setA11yScrollBoundEdge(enabled)
+            if (enabled) preferences.setEdgeLsposedLibxposedPath(false)
+        }
+    }
+
+    fun setEdgeLsposedLibxposedPath(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setEdgeLsposedLibxposedPath(enabled)
+            if (enabled) preferences.setA11yScrollBoundEdge(false)
         }
     }
 
@@ -89,7 +75,6 @@ class EdgeHapticsViewModel(
             _testEvent.value = when (result) {
                 EdgeHapticsBridge.TestResult.Fired -> TestEvent.Fired
                 EdgeHapticsBridge.TestResult.NoVibrator -> TestEvent.NoVibrator
-                is EdgeHapticsBridge.TestResult.Unavailable -> TestEvent.Unavailable(result.reason)
             }
         }
     }

@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.hapticks.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.hapticks.app"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -58,12 +58,14 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            merges += "/META-INF/xposed/**"
         }
     }
 
     sourceSets {
         getByName("main") {
-            java.srcDirs("src/main/kotlin")
+            java.srcDirs("src/main/java")
+            kotlin.srcDirs("src/main/kotlin")
         }
         getByName("test") {
             java.srcDirs("src/test/kotlin")
@@ -89,8 +91,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
 
-    // libxposed API 101 (provided by LSPosed at runtime).
     compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

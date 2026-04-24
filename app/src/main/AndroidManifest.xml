@@ -8,11 +8,6 @@
         android:name="android.hardware.vibrator"
         android:required="false" />
 
-    <queries>
-        <package android:name="org.lsposed.manager" />
-        <package android:name="io.github.lsposed.manager" />
-    </queries>
-
     <application
         android:name=".HapticksApp"
         android:hardwareAccelerated="true"
@@ -25,21 +20,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Hapticks"
         tools:targetApi="33">
-        <meta-data
-            android:name="xposedmodule"
-            android:value="true" />
-        <meta-data
-            android:name="xposeddescription"
-            android:value="@string/xposed_description" />
-        <meta-data
-            android:name="xposedminversion"
-            android:value="100" />
-        <meta-data
-            android:name="xposedscope"
-            android:resource="@array/xposed_scope" />
-        <meta-data
-            android:name="xposedsharedprefs"
-            android:value="true" />
 
         <activity
             android:name=".MainActivity"
@@ -64,15 +44,6 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-
-        <receiver
-            android:name=".edge.EdgeHapticReceiver"
-            android:exported="true"
-            android:directBootAware="false">
-            <intent-filter>
-                <action android:name="com.hapticks.app.edge.ACTION_EDGE_HAPTIC" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>

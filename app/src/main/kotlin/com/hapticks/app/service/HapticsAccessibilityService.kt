@@ -25,6 +25,7 @@ class HapticsAccessibilityService : AccessibilityService() {
 
     @Volatile private var tapEnabled: Boolean = current.tapEnabled
     @Volatile private var scrollEnabled: Boolean = current.scrollEnabled
+    @Volatile private var a11yScrollBoundEdge: Boolean = current.a11yScrollBoundEdge
 
     private lateinit var engine: HapticEngine
 
@@ -33,8 +34,6 @@ class HapticsAccessibilityService : AccessibilityService() {
         val app = application as HapticksApp
         engine = app.hapticEngine
 
-        // Apply the initial event mask based on current defaults before we get
-        // the first DataStore emission, so we don't receive spurious events.
         applyEventMask(HapticsSettings.Default)
 
         settingsJob = app.preferences.settings
@@ -43,6 +42,7 @@ class HapticsAccessibilityService : AccessibilityService() {
                 current = snapshot
                 tapEnabled = snapshot.tapEnabled
                 scrollEnabled = snapshot.scrollEnabled
+                a11yScrollBoundEdge = snapshot.a11yScrollBoundEdge
                 applyEventMask(snapshot)
             }
             .launchIn(scope)
@@ -59,10 +59,18 @@ class HapticsAccessibilityService : AccessibilityService() {
         }
 
         if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            if (!scrollEnabled) return
-            val s = current
-            // Keep cadence tight enough to feel rhythmic while avoiding motor spam.
-            engine.play(s.scrollPattern, s.scrollIntensity, throttleMs = SCROLL_THROTTLE_MS)
+            var consumedByEdge = false
+            if (a11yScrollBoundEdge) {
+                if (A11yScrollBoundEdgeHaptics.onViewScrolled(event) == A11yScrollBoundEdgeHaptics.Result.PlayEdgeHaptic) {
+                    val s = current
+                    engine.play(s.edgePattern, s.edgeIntensity, throttleMs = 0L)
+                    consumedByEdge = true
+                }
+            }
+            if (scrollEnabled && !consumedByEdge) {
+                val s = current
+                engine.play(s.scrollPattern, s.scrollIntensity, throttleMs = SCROLL_THROTTLE_MS)
+            }
         }
     }
 
@@ -80,17 +88,11 @@ class HapticsAccessibilityService : AccessibilityService() {
         if (settings.tapEnabled) {
             mask = mask or AccessibilityEvent.TYPE_VIEW_CLICKED
         }
-        if (settings.scrollEnabled) {
+        if (settings.scrollEnabled || settings.a11yScrollBoundEdge) {
             mask = mask or AccessibilityEvent.TYPE_VIEW_SCROLLED
         }
 
-        // Always subscribe to at least one event type. If mask is 0 (both features disabled),
-        // keep the current mask — removing all event subscriptions makes the service appear
-        // inactive to the system and can cause it to be unbound. The onAccessibilityEvent
-        // guard clauses above will still suppress actual haptic output when disabled.
         if (mask == 0) {
-            // Subscribe to an innocuous event type as a keepalive; no haptic will fire
-            // since both tapEnabled and scrollEnabled are false.
             mask = AccessibilityEvent.TYPE_VIEW_CLICKED
         }
 

@@ -11,13 +11,6 @@ import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.hapticks.app.R
 
-/**
- * User-selectable haptic patterns shown in the Pattern section of the UI.
- *
- * Each pattern carries its label, a one-line description, and an icon so the selector UI can
- * surface meaningful differentiation beyond the name alone. Order of declaration is the order
- * rendered in the selector grid.
- */
 enum class HapticPattern(
     @get:StringRes val labelRes: Int,
     @StringRes val descriptionRes: Int,
@@ -61,9 +54,6 @@ enum class HapticPattern(
             val normalized = key?.trim().orEmpty()
             if (normalized.isEmpty()) return Default
 
-            // Be permissive: old builds and external callers may persist lowercase or
-            // slightly different tokens. Falling back to strict enum-name matching only
-            // makes edge haptics appear "stuck" on the default pattern.
             val canonical = when (normalized.lowercase()) {
                 "default" -> Default.name
                 "click" -> CLICK.name

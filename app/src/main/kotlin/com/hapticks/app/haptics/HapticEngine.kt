@@ -42,10 +42,8 @@ class HapticEngine(context: Context) {
         if (intensity <= MIN_AUDIBLE_INTENSITY) return false
         val clamped = intensity.coerceIn(0f, 1f)
 
-        // Throttle check after intensity guard to avoid updating lastFiredAt on rejected plays
         if (throttleMs > 0L) {
             val now = SystemClock.uptimeMillis()
-            // Guard against Long.MIN_VALUE overflow on first call
             val elapsed = if (lastFiredAt == Long.MIN_VALUE) Long.MAX_VALUE else now - lastFiredAt
             if (elapsed < throttleMs) return false
             lastFiredAt = now
@@ -78,8 +76,6 @@ class HapticEngine(context: Context) {
                 HapticPattern.TICK ->
                     composition.addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, intensity)
                 HapticPattern.HEAVY_CLICK -> {
-                    // Use THUD (low-frequency) followed by CLICK for a distinct "heavy" feel.
-                    // Fall back to double-CLICK with a short gap if THUD is not supported.
                     if (vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_THUD)) {
                         composition.addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity)
                     } else {
@@ -114,7 +110,6 @@ class HapticEngine(context: Context) {
             return composition.compose()
         }
 
-        // Fallback: predefined effects (no amplitude control on these devices typically)
         val effectId = when (pattern) {
             HapticPattern.CLICK -> VibrationEffect.EFFECT_CLICK
             HapticPattern.TICK -> VibrationEffect.EFFECT_TICK
@@ -145,7 +140,6 @@ class HapticEngine(context: Context) {
             HapticPattern.DOUBLE_CLICK ->
                 intArrayOf(VibrationEffect.Composition.PRIMITIVE_CLICK)
             HapticPattern.HEAVY_CLICK ->
-                // Check for CLICK as the minimum requirement; THUD is probed separately at runtime
                 intArrayOf(VibrationEffect.Composition.PRIMITIVE_CLICK)
             HapticPattern.TICK -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_TICK)
             HapticPattern.SOFT_BUMP -> intArrayOf(VibrationEffect.Composition.PRIMITIVE_LOW_TICK)

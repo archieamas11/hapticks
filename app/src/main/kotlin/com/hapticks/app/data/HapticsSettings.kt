@@ -9,9 +9,10 @@ data class HapticsSettings(
     val scrollEnabled: Boolean = false,
     val scrollIntensity: Float = 0.45f,
     val scrollPattern: HapticPattern = HapticPattern.TICK,
-    val edgeEnabled: Boolean = false,
     val edgePattern: HapticPattern = HapticPattern.TICK,
     val edgeIntensity: Float = 1.0f,
+    val a11yScrollBoundEdge: Boolean = false,
+    val edgeLsposedLibxposedPath: Boolean = false,
 
     val useDynamicColors: Boolean = true,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
