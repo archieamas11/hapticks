@@ -1,14 +1,35 @@
 # Hapticks
 
-Android app that adds responsive touch feedback across apps and system UI for a more refined, premium feel. Pixel haptics are highly effective and should be utilized more extensively, as several apps and UI interactive elements have yet to incorporate haptic feedback. So i made one
+Hapticks is an Android app + LSPosed module that adds haptic feedback across apps and system UI to make your phone feel more responsive and premium.
 
-## Privacy & Play Store policy
+## Why I Built This
 
-Hapticks uses the Accessibility API solely to detect `TYPE_VIEW_CLICKED` event types and trigger the device vibrator. It declares `android:canRetrieveWindowContent="false"` so the OS does not grant it access to on-screen content, and it never inspects, stores, or transmits any user data. This intent is disclosed in-app on the onboarding card.
+I’m a big fan of haptic feedback. Some phones—especially Pixel devices—have really good haptics, but they’re not used enough.
 
-## Out of scope for v1
+A lot of apps and even parts of Android don’t give feedback when you interact with them. That makes the experience feel a bit flat.
 
-- Per-app allow / block lists
-- Element-type targeting (buttons vs switches vs sliders)
-- User-defined custom patterns
-- Foreground-service keep-alive for aggressive OEM battery policies
+So I built Hapticks to fix that and make interactions feel more alive and satisfying.
+
+## What It Does
+
+* Adds haptic feedback to UI interactions
+* Improves the feel of scrolling and touch actions
+* Makes the overall experience more “premium”
+
+## Requirements
+
+* Accessibility permission (for app-level haptics)
+* LSPosed (for system-wide features like edge haptics)
+
+Right now, LSPosed is needed to make it work across the whole system. I’m still looking for a better solution in the future.
+
+## Screenshots
+
+```
+![Home Screen](assets/screenshot-1.png)
+![Settings](assets/screenshot-2.png)
+```
+
+## Notes
+
+This is still a work in progress. The goal is to make haptics feel natural, fast, and consistent across all apps without adding lag or using too much battery.
