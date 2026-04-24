@@ -25,8 +25,10 @@ Right now, LSPosed is needed to make it work across the whole system. I’m stil
 
 ## Screenshots
 
-<img src="assets/screenshot-1.png" alt="Home Screen" width="320" />
-<img src="assets/screenshot-2.png" alt="Settings" width="320" />
+<div style="display: flex; gap: 4px; flex-wrap: wrap;">
+  <img src="assets/screenshot-1.png" alt="Home Screen" width="320" />
+  <img src="assets/screenshot-2.png" alt="Settings" width="320" />
+</div>
 
 ## Notes
 
