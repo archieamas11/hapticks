@@ -4,9 +4,9 @@ Hapticks is an Android app + LSPosed module that adds haptic feedback across app
 
 ## Why I Built This
 
-I’m a big fan of haptic feedback. Some phones—especially Pixel devices—have really good haptics, but they’re not used enough.
+I’m a big fan of haptic feedback. Some phones especially Pixel devices have really good haptics, but they’re underutilized.
 
-A lot of apps and even parts of Android don’t give feedback when you interact with them. That makes the experience feel a bit flat.
+A lot of apps and even parts of Android don’t give haptic feedback when you interact with them. That makes the experience feel a bit flat.
 
 So I built Hapticks to fix that and make interactions feel more alive and satisfying.
 
@@ -19,9 +19,9 @@ So I built Hapticks to fix that and make interactions feel more alive and satisf
 ## Requirements
 
 * Accessibility permission (for app-level haptics)
-* LSPosed (for system-wide features like edge haptics)
+* LSPosed (for system-wide features for edge haptics)
 
-Right now, LSPosed is needed to make it work across the whole system. I’m still looking for a better solution in the future.
+Right now, LSPosed is needed to make the edge haptics work across the whole system. I’m still looking for a better solution in the future.
 
 ## Screenshots
 
