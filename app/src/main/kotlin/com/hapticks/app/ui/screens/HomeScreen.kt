@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -114,7 +115,7 @@ fun HomeScreen(
 
 @Composable
 private fun HomeHeader() {
-    val junicodeFontFamily = FontFamily(Font(R.font.junicode_italic))
+    val junicodeFontFamily = remember { FontFamily(Font(R.font.junicode_italic)) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(

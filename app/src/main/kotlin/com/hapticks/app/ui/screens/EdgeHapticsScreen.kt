@@ -119,12 +119,12 @@ fun EdgeHapticsScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             if (!isServiceEnabled) {
-                item {
+                item(key = "enable_service") {
                     EnableServiceCard(onOpenSettings = onOpenAccessibilitySettings)
                 }
             }
 
-            item {
+            item(key = "edge_toggles_section") {
                 SectionCard {
                     HapticToggleRow(
                         title = stringResource(id = R.string.edge_a11y_scroll_bound_title),
@@ -152,7 +152,7 @@ fun EdgeHapticsScreen(
                 }
             }
 
-            item {
+            item(key = "edge_pattern_section") {
                 SectionCard {
                     PatternSelector(
                         selected = settings.edgePattern,
@@ -161,7 +161,7 @@ fun EdgeHapticsScreen(
                 }
             }
 
-            item {
+            item(key = "edge_test") {
                 HapticTestButton(
                     label = stringResource(id = R.string.edge_test_button),
                     enabled = true,
@@ -169,7 +169,7 @@ fun EdgeHapticsScreen(
                 )
             }
 
-            item {
+            item(key = "bottom_spacer") {
                 Spacer(modifier = Modifier.height(4.dp))
             }
         }
@@ -242,6 +242,13 @@ private fun IntensityControl(
     var draft by remember(intensity) { mutableFloatStateOf(intensity) }
     val percent = (draft * 100f).roundToInt()
 
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = MaterialTheme.colorScheme.primary,
+        activeTrackColor = MaterialTheme.colorScheme.primary,
+        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        activeTickColor = MaterialTheme.colorScheme.primary,
+        inactiveTickColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -265,13 +272,7 @@ private fun IntensityControl(
             onValueChange = { draft = it },
             onValueChangeFinished = { onIntensityCommit(draft) },
             valueRange = 0f..1f,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                activeTickColor = MaterialTheme.colorScheme.primary,
-                inactiveTickColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            ),
+            colors = sliderColors,
         )
     }
 }

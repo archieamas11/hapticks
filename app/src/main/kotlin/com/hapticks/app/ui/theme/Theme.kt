@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -81,22 +82,24 @@ fun HapticksTheme(
     }
 
     val context = LocalContext.current
-    val colorScheme = when {
-        useDynamicColors && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> {
-            if (seedColor != null) {
-                HapticksDarkColorScheme.copy(primary = Color(seedColor))
-            } else {
-                HapticksDarkColorScheme
+    val colorScheme = remember(darkTheme, useDynamicColors, seedColor, context) {
+        when {
+            useDynamicColors && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
-        }
-        else -> {
-            if (seedColor != null) {
-                HapticksLightColorScheme.copy(primary = Color(seedColor))
-            } else {
-                HapticksLightColorScheme
+            darkTheme -> {
+                if (seedColor != null) {
+                    HapticksDarkColorScheme.copy(primary = Color(seedColor))
+                } else {
+                    HapticksDarkColorScheme
+                }
+            }
+            else -> {
+                if (seedColor != null) {
+                    HapticksLightColorScheme.copy(primary = Color(seedColor))
+                } else {
+                    HapticksLightColorScheme
+                }
             }
         }
     }

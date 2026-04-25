@@ -33,6 +33,7 @@
     <string name="pattern_double_tick">Double Tick</string>
     <string name="pattern_double_tick_desc">Firm bump-bump boundary feel</string>
     <string name="pattern_selected">Selected</string>
+    <string name="pattern_not_selected">Not selected</string>
 
     <string name="enable_service_title">Turn on accessibility service</string>
     <string name="enable_service_body">Hapticks needs the accessibility service to fire haptic feedback when you tap in any app. Your content is never read or stored.</string>

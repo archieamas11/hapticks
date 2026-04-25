@@ -18,22 +18,57 @@ import java.util.WeakHashMap
 
 class EdgeEffectHapticsModule : XposedModule() {
 
+    @Volatile private var cachedApp: Application? = null
+    @Volatile private var cachedVibrator: Vibrator? = null
+
+    private val pullDistanceMap = WeakHashMap<EdgeEffect, Float>()
+
+    @Volatile private var enabled = false
+    @Volatile private var cachedPattern: HapticPattern? = null
+    @Volatile private var cachedIntensity = 1f
+
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val lastHaptic = WeakHashMap<EdgeEffect, Long>()
-    private val lastHapticLock = Any()
 
     override fun onModuleLoaded(param: ModuleLoadedParam) {
         super.onModuleLoaded(param)
         log(Log.INFO, TAG, "onModuleLoaded process=${param.processName}")
         if ((getFrameworkProperties() and PROP_CAP_REMOTE) == 0L) {
-            log(Log.WARN, TAG, "Framework lacks PROP_CAP_REMOTE; LSPosed remote prefs may be unavailable")
+            log(Log.WARN, TAG, "PROP_CAP_REMOTE missing; remote prefs may be unavailable")
         }
+
+        setupPreferenceListener()
+
         installEdgeHooks()
+    }
+
+    private fun setupPreferenceListener() {
+        val prefs = try {
+            getRemotePreferences(XposedEdgeRemotePrefs.GROUP)
+        } catch (t: Throwable) {
+            log(Log.WARN, TAG, "Cannot access remote preferences: ${t.message}")
+            return
+        }
+
+        updateCachedPrefs(prefs)
+
+        prefs.registerOnSharedPreferenceChangeListener { _, _ ->
+            updateCachedPrefs(prefs)
+        }
+    }
+
+    private fun updateCachedPrefs(prefs: android.content.SharedPreferences) {
+        enabled = prefs.getBoolean(XposedEdgeRemotePrefs.KEY_ENABLED, false)
+        cachedPattern = HapticPattern.fromStorageKey(
+            prefs.getString(XposedEdgeRemotePrefs.KEY_PATTERN, null)
+        )
+        cachedIntensity = prefs.getFloat(XposedEdgeRemotePrefs.KEY_INTENSITY, 1f)
+            .coerceIn(0f, 1f)
     }
 
     private fun installEdgeHooks() {
         try {
             val edge = EdgeEffect::class.java
+
             val onPull = edge.getDeclaredMethod(
                 "onPull",
                 Float::class.javaPrimitiveType,
@@ -44,7 +79,7 @@ class EdgeEffectHapticsModule : XposedModule() {
                 .intercept { chain ->
                     chain.proceed()
                     val effect = chain.getThisObject() as? EdgeEffect
-                    if (effect != null) afterEdgeInteraction(effect)
+                    if (effect != null) afterEdgePull(effect)
                     null
                 }
 
@@ -54,41 +89,46 @@ class EdgeEffectHapticsModule : XposedModule() {
                 .intercept { chain ->
                     chain.proceed()
                     val effect = chain.getThisObject() as? EdgeEffect
-                    if (effect != null) afterEdgeInteraction(effect)
+                    if (effect != null) afterEdgeAbsorb(effect)
                     null
                 }
         } catch (t: Throwable) {
-            log(Log.ERROR, TAG, "EdgeEffect hook install failed", t)
+            log(Log.ERROR, TAG, "EdgeEffect hook installation failed", t)
         }
     }
 
-    private fun afterEdgeInteraction(effect: EdgeEffect) {
-        val prefs = try {
-            getRemotePreferences(XposedEdgeRemotePrefs.GROUP)
-        } catch (t: Throwable) {
-            log(Log.DEBUG, TAG, "getRemotePreferences failed: ${t.message}")
-            return
-        }
-        if (!prefs.getBoolean(XposedEdgeRemotePrefs.KEY_ENABLED, false)) return
+    private fun afterEdgePull(effect: EdgeEffect) {
+        if (!enabled) return  
 
-        val now = System.currentTimeMillis()
-        synchronized(lastHapticLock) {
-            val last = lastHaptic[effect] ?: 0L
-            if (now - last <= COOLDOWN_MS) return
-            lastHaptic[effect] = now
-        }
+        val currentDistance = effect.distance.coerceIn(0f, 1f)
 
-        val pattern = HapticPattern.fromStorageKey(prefs.getString(XposedEdgeRemotePrefs.KEY_PATTERN, null))
-        val intensity = prefs.getFloat(XposedEdgeRemotePrefs.KEY_INTENSITY, 1f).coerceIn(0f, 1f)
+        synchronized(pullDistanceMap) {
+            val previous = pullDistanceMap[effect] ?: 0f
+            pullDistanceMap[effect] = currentDistance
+
+            if (previous == 0f && currentDistance > 0f) {
+                triggerHaptic()
+            }
+        }
+    }
+
+    private fun afterEdgeAbsorb(effect: EdgeEffect) {
+        if (!enabled) return
+        triggerHaptic()
+    }
+
+    private fun triggerHaptic() {
+        val pattern = cachedPattern ?: return
+        val intensity = cachedIntensity
+
         val vibrationEffect = try {
             EdgeHapticsBridge.edgeVibrationEffect(pattern, intensity)
         } catch (t: Throwable) {
-            log(Log.DEBUG, TAG, "edgeVibrationEffect: ${t.message}")
+            log(Log.DEBUG, TAG, "Failed to create vibration effect: ${t.message}")
             return
         }
 
-        val app = currentApplication() ?: return
-        val vibrator = resolveVibrator(app) ?: return
+        val vibrator = resolveVibrator() ?: return
         if (!vibrator.hasVibrator()) return
 
         val attrs = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
@@ -96,16 +136,28 @@ class EdgeEffectHapticsModule : XposedModule() {
             try {
                 vibrator.vibrate(vibrationEffect, attrs)
             } catch (t: Throwable) {
-                log(Log.DEBUG, TAG, "vibrate failed: ${t.message}")
+                log(Log.DEBUG, TAG, "Vibrate failed: ${t.message}")
             }
         }
     }
 
-    private fun resolveVibrator(app: Application): Vibrator? = try {
-        val mgr = app.getSystemService(VibratorManager::class.java)
-        mgr?.defaultVibrator
-    } catch (_: Throwable) {
-        null
+    @Synchronized
+    private fun resolveApplication(): Application? {
+        if (cachedApp != null) return cachedApp
+        cachedApp = currentApplication()
+        return cachedApp
+    }
+
+    @Synchronized
+    private fun resolveVibrator(): Vibrator? {
+        if (cachedVibrator != null) return cachedVibrator
+        val app = resolveApplication() ?: return null
+        cachedVibrator = try {
+            app.getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } catch (_: Throwable) {
+            null
+        }
+        return cachedVibrator
     }
 
     private fun currentApplication(): Application? = try {
@@ -116,8 +168,7 @@ class EdgeEffectHapticsModule : XposedModule() {
         null
     }
 
-    private companion object {
+    companion object {
         private const val TAG = "HapticksEdgeXposed"
-        private const val COOLDOWN_MS = 400L
     }
 }

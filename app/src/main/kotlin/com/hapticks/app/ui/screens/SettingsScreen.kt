@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,11 +78,11 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            item {
+            item(key = "header") {
                 SettingsHeader()
             }
 
-            item {
+            item(key = "appearance") {
                 SettingsSection(
                     title = stringResource(R.string.settings_section_appearance),
                     icon = Icons.Rounded.Palette,
@@ -110,7 +111,7 @@ fun SettingsScreen(
                 }
             }
 
-            item {
+            item(key = "about") {
                 SettingsSection(
                     title = stringResource(R.string.settings_section_about),
                     icon = Icons.Rounded.Settings,
@@ -137,7 +138,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            item {
+            item(key = "bottom_inset") {
                 Spacer(modifier = Modifier.height(96.dp))
             }
         }
@@ -146,7 +147,7 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsHeader() {
-    val junicodeFontFamily = FontFamily(Font(R.font.junicode_italic))
+    val junicodeFontFamily = remember { FontFamily(Font(R.font.junicode_italic)) }
 
     Column(
         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),

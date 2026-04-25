@@ -53,6 +53,12 @@ fun HapticTestButton(
 ) {
     val appHaptics = LocalAppHaptics.current
     val currentOnClick by rememberUpdatedState(onClick)
+    val buttonColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Button(
         onClick = {
             appHaptics?.tap()
@@ -63,12 +69,7 @@ fun HapticTestButton(
             .fillMaxWidth()
             .height(60.dp),
         shape = RoundedCornerShape(100.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
+        colors = buttonColors,
         contentPadding = PaddingValues(horizontal = 24.dp),
     ) {
         Row(

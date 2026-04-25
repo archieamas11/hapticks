@@ -35,6 +35,14 @@ fun HapticToggleRow(
     leadingIcon: ImageVector? = null,
 ) {
     val appHaptics = LocalAppHaptics.current
+    val switchColors = SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+        checkedTrackColor = MaterialTheme.colorScheme.primary,
+        checkedBorderColor = MaterialTheme.colorScheme.primary,
+        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -83,14 +91,7 @@ fun HapticToggleRow(
                 appHaptics?.tap()
                 onCheckedChange(it)
             },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                uncheckedBorderColor = MaterialTheme.colorScheme.outline,
-            ),
+            colors = switchColors,
         )
     }
 }

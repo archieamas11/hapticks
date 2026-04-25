@@ -10,6 +10,7 @@ import androidx.activity.viewModels
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,7 +49,6 @@ class MainActivity : ComponentActivity() {
             val app = application as HapticksApp
             val settings by viewModel.settings.collectAsStateWithLifecycle()
             val isServiceEnabled by viewModel.isServiceEnabled.collectAsStateWithLifecycle()
-            val edgeTestEvent by edgeViewModel.testEvent.collectAsStateWithLifecycle()
 
             HapticksTheme(
                 themeMode = settings.themeMode,
@@ -78,17 +78,9 @@ class MainActivity : ComponentActivity() {
                             }
                             Route.EDGE_HAPTICS -> {
                                 BackHandler { route = Route.HOME }
-                                val edgeSettings by edgeViewModel.settings.collectAsStateWithLifecycle()
-                                EdgeHapticsScreen(
-                                    settings = edgeSettings,
+                                EdgeHapticsFlowHost(
+                                    edgeViewModel = edgeViewModel,
                                     isServiceEnabled = isServiceEnabled,
-                                    testEvent = edgeTestEvent,
-                                    onA11yScrollBoundEdgeChange = edgeViewModel::setA11yScrollBoundEdge,
-                                    onEdgeLsposedLibxposedPathChange = edgeViewModel::setEdgeLsposedLibxposedPath,
-                                    onPatternSelected = edgeViewModel::setEdgePattern,
-                                    onIntensityCommit = edgeViewModel::setEdgeIntensity,
-                                    onTestEdgeHaptic = edgeViewModel::testEdgeHaptic,
-                                    onTestEventConsumed = edgeViewModel::consumeTestEvent,
                                     onOpenAccessibilitySettings = ::openAccessibilitySettings,
                                     onBack = { route = Route.HOME },
                                 )
@@ -157,4 +149,28 @@ class MainActivity : ComponentActivity() {
         }
         startActivity(intent)
     }
+}
+
+@Composable
+private fun EdgeHapticsFlowHost(
+    edgeViewModel: EdgeHapticsViewModel,
+    isServiceEnabled: Boolean,
+    onOpenAccessibilitySettings: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val edgeSettings by edgeViewModel.settings.collectAsStateWithLifecycle()
+    val edgeTestEvent by edgeViewModel.testEvent.collectAsStateWithLifecycle()
+    EdgeHapticsScreen(
+        settings = edgeSettings,
+        isServiceEnabled = isServiceEnabled,
+        testEvent = edgeTestEvent,
+        onA11yScrollBoundEdgeChange = edgeViewModel::setA11yScrollBoundEdge,
+        onEdgeLsposedLibxposedPathChange = edgeViewModel::setEdgeLsposedLibxposedPath,
+        onPatternSelected = edgeViewModel::setEdgePattern,
+        onIntensityCommit = edgeViewModel::setEdgeIntensity,
+        onTestEdgeHaptic = edgeViewModel::testEdgeHaptic,
+        onTestEventConsumed = edgeViewModel::consumeTestEvent,
+        onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+        onBack = onBack,
+    )
 }

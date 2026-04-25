@@ -10,8 +10,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -36,6 +38,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
 import com.hapticks.app.haptics.HapticPattern
@@ -48,7 +52,8 @@ fun PatternSelector(
     modifier: Modifier = Modifier,
 ) {
     val appHaptics = LocalAppHaptics.current
-    val patterns = remember { HapticPattern.entries.toList() }
+    val patterns = remember { HapticPattern.entries }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -57,7 +62,9 @@ fun PatternSelector(
     ) {
         patterns.chunked(2).forEach { rowItems ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),   // Ensures equal row height
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 rowItems.forEach { pattern ->
@@ -70,11 +77,14 @@ fun PatternSelector(
                                 onPatternSelected(pattern)
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),     // Stretch to row height
                     )
                 }
+                // Invisible placeholder for odd‑numbered rows to keep grid alignment
                 if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
         }
@@ -121,6 +131,11 @@ private fun PatternCard(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    // Compute the accessibility string in a composable context
+    val stateDescription = stringResource(
+        id = if (isSelected) R.string.pattern_selected else R.string.pattern_not_selected
+    )
+
     val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
@@ -132,7 +147,11 @@ private fun PatternCard(
                 role = Role.RadioButton,
                 interactionSource = interactionSource,
                 indication = ripple(bounded = true),
-            ),
+            )
+            .semantics {
+                // Use the pre‑computed string, no composable call inside
+                this.stateDescription = stateDescription
+            },
         color = containerColor,
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(borderWidth, borderColor),
@@ -140,8 +159,9 @@ private fun PatternCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()   // Fill entire card height
                 .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -194,7 +214,7 @@ private fun PatternIconBadge(icon: ImageVector, isSelected: Boolean) {
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = null,   // decorative
             tint = tint,
             modifier = Modifier.size(22.dp),
         )
@@ -218,11 +238,14 @@ private fun SelectionDot(isSelected: Boolean) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Check,
-            contentDescription = stringResource(id = R.string.pattern_selected),
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(14.dp),
-        )
+        // Only compose the icon when selected – reduces work
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = stringResource(id = R.string.pattern_selected),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }

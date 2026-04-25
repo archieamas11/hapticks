@@ -1,7 +1,9 @@
 package com.hapticks.app.data
 
+import androidx.compose.runtime.Immutable
 import com.hapticks.app.haptics.HapticPattern
 
+@Immutable
 data class HapticsSettings(
     val tapEnabled: Boolean = true,
     val intensity: Float = 1.0f,

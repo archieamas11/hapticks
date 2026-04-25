@@ -100,12 +100,12 @@ fun CustomHapticsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (!isServiceEnabled) {
-                item {
+                item(key = "enable_service") {
                     EnableServiceCard(onOpenSettings = onOpenAccessibilitySettings)
                 }
             }
 
-            item {
+            item(key = "tap_section") {
                 HapticFeedbackSection(
                     settings = settings,
                     onTapEnabledChange = onTapEnabledChange,
@@ -113,14 +113,14 @@ fun CustomHapticsScreen(
                 )
             }
 
-            item {
+            item(key = "pattern_section") {
                 PatternSection(
                     settings = settings,
                     onPatternSelected = onPatternSelected,
                 )
             }
 
-            item {
+            item(key = "test_haptic") {
                 HapticTestButton(
                     label = stringResource(id = R.string.test_haptic),
                     onClick = onTestHaptic,
@@ -181,6 +181,13 @@ private fun IntensityControl(
     var draft by remember(intensity) { mutableFloatStateOf(intensity) }
     val percent = (draft * 100f).roundToInt()
 
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = MaterialTheme.colorScheme.primary,
+        activeTrackColor = MaterialTheme.colorScheme.primary,
+        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        activeTickColor = MaterialTheme.colorScheme.primary,
+        inactiveTickColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -204,13 +211,7 @@ private fun IntensityControl(
             onValueChange = { draft = it },
             onValueChangeFinished = { onIntensityCommit(draft) },
             valueRange = 0f..1f,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                activeTickColor = MaterialTheme.colorScheme.primary,
-                inactiveTickColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            ),
+            colors = sliderColors,
         )
     }
 }
