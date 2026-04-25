@@ -20,7 +20,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.SwipeVertical
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.SwipeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -79,7 +79,7 @@ fun HomeScreen(
                 FeatureCard(
                     title = stringResource(id = R.string.home_tactile_scrolling_title),
                     subtitle = stringResource(id = R.string.home_tactile_scrolling_subtitle),
-                    icon = Icons.Rounded.GraphicEq,
+                    icon = Icons.Rounded.SwipeUp,
                     accent = MaterialTheme.colorScheme.secondaryContainer,
                     onAccent = MaterialTheme.colorScheme.onSecondaryContainer,
                     iconBg = MaterialTheme.colorScheme.secondary,
