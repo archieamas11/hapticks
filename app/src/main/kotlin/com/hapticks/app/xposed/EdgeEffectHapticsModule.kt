@@ -21,7 +21,7 @@ class EdgeEffectHapticsModule : XposedModule() {
     @Volatile private var cachedApp: Application? = null
     @Volatile private var cachedVibrator: Vibrator? = null
 
-    private val pullDistanceMap = WeakHashMap<EdgeEffect, Float>()
+    private val hapticFiredMap = WeakHashMap<EdgeEffect, Boolean>()
 
     @Volatile private var enabled = false
     @Volatile private var cachedPattern: HapticPattern? = null
@@ -37,7 +37,6 @@ class EdgeEffectHapticsModule : XposedModule() {
         }
 
         setupPreferenceListener()
-
         installEdgeHooks()
     }
 
@@ -50,7 +49,6 @@ class EdgeEffectHapticsModule : XposedModule() {
         }
 
         updateCachedPrefs(prefs)
-
         prefs.registerOnSharedPreferenceChangeListener { _, _ ->
             updateCachedPrefs(prefs)
         }
@@ -69,6 +67,23 @@ class EdgeEffectHapticsModule : XposedModule() {
         try {
             val edge = EdgeEffect::class.java
 
+            edge.constructors.forEach { ctor ->
+                hook(ctor)
+                    .setExceptionMode(ExceptionMode.PROTECTIVE)
+                    .intercept { chain ->
+                        chain.proceed()
+                        val context = chain.args.firstOrNull() as? android.content.Context
+                        if (context != null && cachedApp == null) {
+                            synchronized(this) {
+                                if (cachedApp == null) {
+                                    cachedApp = context.applicationContext as? Application
+                                }
+                            }
+                        }
+                        null
+                    }
+            }
+
             val onPull = edge.getDeclaredMethod(
                 "onPull",
                 Float::class.javaPrimitiveType,
@@ -78,7 +93,7 @@ class EdgeEffectHapticsModule : XposedModule() {
                 .setExceptionMode(ExceptionMode.PROTECTIVE)
                 .intercept { chain ->
                     chain.proceed()
-                    val effect = chain.getThisObject() as? EdgeEffect
+                    val effect = chain.thisObject as? EdgeEffect
                     if (effect != null) afterEdgePull(effect)
                     null
                 }
@@ -88,25 +103,46 @@ class EdgeEffectHapticsModule : XposedModule() {
                 .setExceptionMode(ExceptionMode.PROTECTIVE)
                 .intercept { chain ->
                     chain.proceed()
-                    val effect = chain.getThisObject() as? EdgeEffect
+                    val effect = chain.thisObject as? EdgeEffect
                     if (effect != null) afterEdgeAbsorb(effect)
                     null
                 }
+
+            val setDistance = edge.getDeclaredMethod("setDistance", Float::class.javaPrimitiveType)
+            hook(setDistance)
+                .setExceptionMode(ExceptionMode.PROTECTIVE)
+                .intercept { chain ->
+                    chain.proceed()
+                    val effect = chain.thisObject as? EdgeEffect
+                    if (effect != null && effect.distance == 0f) {
+                        resetHapticFlag(effect)
+                    }
+                    null
+                }
+
+            try {
+                val onRelease = edge.getDeclaredMethod("onRelease")
+                hook(onRelease)
+                    .setExceptionMode(ExceptionMode.PROTECTIVE)
+                    .intercept { chain ->
+                        chain.proceed()
+                        val effect = chain.thisObject as? EdgeEffect
+                        if (effect != null) resetHapticFlag(effect)
+                        null
+                    }
+            } catch (_: NoSuchMethodException) {
+                log(Log.INFO, TAG, "onRelease not available, relying on setDistance reset.")
+            }
         } catch (t: Throwable) {
             log(Log.ERROR, TAG, "EdgeEffect hook installation failed", t)
         }
     }
 
     private fun afterEdgePull(effect: EdgeEffect) {
-        if (!enabled) return  
-
-        val currentDistance = effect.distance.coerceIn(0f, 1f)
-
-        synchronized(pullDistanceMap) {
-            val previous = pullDistanceMap[effect] ?: 0f
-            pullDistanceMap[effect] = currentDistance
-
-            if (previous == 0f && currentDistance > 0f) {
+        if (!enabled || effect.distance <= 0f) return
+        synchronized(hapticFiredMap) {
+            if (hapticFiredMap[effect] != true) {
+                hapticFiredMap[effect] = true
                 triggerHaptic()
             }
         }
@@ -115,6 +151,12 @@ class EdgeEffectHapticsModule : XposedModule() {
     private fun afterEdgeAbsorb(effect: EdgeEffect) {
         if (!enabled) return
         triggerHaptic()
+    }
+
+    private fun resetHapticFlag(effect: EdgeEffect) {
+        synchronized(hapticFiredMap) {
+            hapticFiredMap[effect] = false
+        }
     }
 
     private fun triggerHaptic() {
@@ -142,30 +184,15 @@ class EdgeEffectHapticsModule : XposedModule() {
     }
 
     @Synchronized
-    private fun resolveApplication(): Application? {
-        if (cachedApp != null) return cachedApp
-        cachedApp = currentApplication()
-        return cachedApp
-    }
-
-    @Synchronized
     private fun resolveVibrator(): Vibrator? {
         if (cachedVibrator != null) return cachedVibrator
-        val app = resolveApplication() ?: return null
+        val app = cachedApp ?: return null
         cachedVibrator = try {
             app.getSystemService(VibratorManager::class.java)?.defaultVibrator
         } catch (_: Throwable) {
             null
         }
         return cachedVibrator
-    }
-
-    private fun currentApplication(): Application? = try {
-        Class.forName("android.app.ActivityThread")
-            .getMethod("currentApplication")
-            .invoke(null) as? Application
-    } catch (_: Throwable) {
-        null
     }
 
     companion object {
