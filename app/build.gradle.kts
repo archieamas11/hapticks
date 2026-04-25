@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+fun getVersionName(): String {
+    return System.getenv("GITHUB_REF_NAME") ?: "1.0.0"
+}
+
+fun getVersionCode(): Int {
+    return System.getenv("GITHUB_RUN_NUMBER")?.toInt() ?: 1
+}
+
 android {
     namespace = "com.hapticks.app"
     compileSdk = 36
@@ -12,8 +20,8 @@ android {
         applicationId = "com.hapticks.app"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = getVersionCode()
+        versionName = getVersionName()
 
         vectorDrawables {
             useSupportLibrary = true
