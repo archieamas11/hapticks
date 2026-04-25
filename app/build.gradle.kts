@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plans.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -20,6 +20,15 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -28,8 +37,9 @@ android {
             isJniDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
@@ -37,9 +47,7 @@ android {
     }
 
     dependenciesInfo {
-        // Strip signed dependency metadata from APKs so the package is smaller when
-        // sideloaded. Play Store builds keep it via the bundle.
-        includeInApk = false
+        includeInApk = false  
     }
 
     compileOptions {
@@ -66,9 +74,6 @@ android {
         getByName("main") {
             java.srcDirs("src/main/java")
             kotlin.srcDirs("src/main/kotlin")
-        }
-        getByName("test") {
-            java.srcDirs("src/test/kotlin")
         }
     }
 }
