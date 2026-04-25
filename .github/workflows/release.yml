@@ -50,3 +50,5 @@ jobs:
             Signed release APK for **${{ github.ref_name }}** (commit ${{ github.sha }}).
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          replacesArtifacts: true

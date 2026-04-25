@@ -28,5 +28,5 @@ local.properties
 .navigation/
 captures/
 
-app/debug/
+app/debug
 app/src/test/
