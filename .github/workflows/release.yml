@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
     inputs:
+      tag_name:
+        description: "Tag name (e.g., v1.2.3)"
+        required: true
+        type: string
       release_type:
         description: "Type of release"
         required: true
@@ -49,35 +53,38 @@ jobs:
           name: app-release.apk
           path: app/build/outputs/apk/release/app-release.apk
 
-      - name: Decide pre-release flag
-        id: release_flag
+      - name: Set release variables
+        id: release_vars
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag_name }}"
             if [[ "${{ github.event.inputs.release_type }}" == "pre-release" ]]; then
-              echo "prerelease=true" >> $GITHUB_OUTPUT
+              PRERELEASE="true"
             else
-              echo "prerelease=false" >> $GITHUB_OUTPUT
+              PRERELEASE="false"
             fi
           else
-            # Tag push: treat as pre-release if tag contains alpha/beta/rc/pre
             TAG="${{ github.ref_name }}"
+            # For tag push: treat as pre-release if tag contains alpha/beta/rc/pre
             if [[ "$TAG" =~ alpha|beta|rc|pre ]]; then
-              echo "prerelease=true" >> $GITHUB_OUTPUT
+              PRERELEASE="true"
             else
-              echo "prerelease=false" >> $GITHUB_OUTPUT
+              PRERELEASE="false"
             fi
           fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
         with:
           artifacts: "app/build/outputs/apk/release/app-release.apk"
-          tag: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag: ${{ steps.release_vars.outputs.tag }}
+          name: Release ${{ steps.release_vars.outputs.tag }}
           body: |
-            Signed release APK for **${{ github.ref_name }}** (commit ${{ github.sha }}).
+            Signed release APK for **${{ steps.release_vars.outputs.tag }}** (commit ${{ github.sha }}).
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           replacesArtifacts: true
-          prerelease: ${{ steps.release_flag.outputs.prerelease }}
+          prerelease: ${{ steps.release_vars.outputs.prerelease }}
