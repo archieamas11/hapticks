@@ -1,6 +1,7 @@
 package com.hapticks.app.xposed
 
 import android.app.Application
+import android.os.SystemClock
 import android.os.VibrationAttributes
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -172,21 +173,32 @@ class EdgeEffectHapticsModule : XposedModule() {
 
     private fun updateStretchState(effect: EdgeEffect, distanceAfter: Float) {
         val state = edgeStates.getOrPut(effect) { EdgeStretchState() }
+        val nowUptimeMs = SystemClock.uptimeMillis()
         val clampedDistance = distanceAfter.coerceAtLeast(0f)
         val stretchActive = clampedDistance > EDGE_DISTANCE_EPSILON
 
-        if (stretchActive && !state.edgeHitConsumed) {
-            triggerHaptic(HapticEventType.PULL)
-            state.edgeHitConsumed = true
+        if (!stretchActive) {
+            state.stretchActive = false
+            state.lastDistance = clampedDistance
+            state.isRearmPending = true
+
+            // Re-arm only after a tiny stable idle window to suppress fast oscillation double fire.
+            if (state.edgeHitConsumed && (nowUptimeMs - state.lastEdgeHitUptimeMs) >= EDGE_HIT_COOLDOWN_MS) {
+                state.edgeHitConsumed = false
+                state.isRearmPending = false
+            }
+            return
         }
 
-        state.stretchActive = stretchActive
-        if (stretchActive) {
-            state.wasStretchedSession = true
-        } else {
-            state.edgeHitConsumed = false
-            state.wasStretchedSession = false
+        if (!state.edgeHitConsumed && (nowUptimeMs - state.lastEdgeHitUptimeMs) >= EDGE_HIT_COOLDOWN_MS) {
+            triggerHaptic(HapticEventType.PULL)
+            state.edgeHitConsumed = true
+            state.lastEdgeHitUptimeMs = nowUptimeMs
         }
+
+        state.stretchActive = true
+        state.wasStretchedSession = true
+        state.isRearmPending = false
         state.lastDistance = clampedDistance
     }
 
@@ -226,6 +238,7 @@ class EdgeEffectHapticsModule : XposedModule() {
     companion object {
         private const val TAG = "HapticksEdgeXposed"
         private const val EDGE_DISTANCE_EPSILON = 0.001f
+        private const val EDGE_HIT_COOLDOWN_MS = 40L
     }
 
     private data class EdgeStretchState(
@@ -233,5 +246,7 @@ class EdgeEffectHapticsModule : XposedModule() {
         var stretchActive: Boolean = false,
         var edgeHitConsumed: Boolean = false,
         var wasStretchedSession: Boolean = false,
+        var lastEdgeHitUptimeMs: Long = Long.MIN_VALUE / 4L,
+        var isRearmPending: Boolean = false,
     )
 }
