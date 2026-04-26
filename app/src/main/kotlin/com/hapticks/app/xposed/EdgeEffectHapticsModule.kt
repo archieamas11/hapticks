@@ -15,7 +15,7 @@ import java.util.WeakHashMap
 
 class EdgeEffectHapticsModule : XposedModule() {
 
-    private val edgeState = WeakHashMap<EdgeEffect, Boolean>()
+    private val edgeStates = WeakHashMap<EdgeEffect, EdgeStretchState>()
 
     @Volatile private var vibrator: Vibrator? = null
 
@@ -101,6 +101,14 @@ class EdgeEffectHapticsModule : XposedModule() {
             }
 
             runCatching {
+                hookAfter(cls, "finish") { effect, _ ->
+                    resetState(effect as EdgeEffect)
+                }
+            }.onFailure {
+                log(Log.DEBUG, TAG, "finish not found — cleanup via release/absorb only: ${it.message}")
+            }
+
+            runCatching {
                 hookAfter(cls, "setDistance", Float::class.javaPrimitiveType) { effect, args ->
                     val distance = args[0] as? Float ?: return@hookAfter
                     handleSetDistance(effect as EdgeEffect, distance)
@@ -135,37 +143,55 @@ class EdgeEffectHapticsModule : XposedModule() {
         if (!enabled) return
         if (deltaDistance < 0f) return
 
-        val engaged = deltaDistance > 0f || effect.distance > 0f
-        if (!engaged) return
-
-        if (edgeState[effect] != true) {
-            edgeState[effect] = true
-            triggerHaptic(HapticEventType.PULL)
-        }
+        val distanceAfter = effect.distance
+        val shouldMarkActive = deltaDistance > 0f || distanceAfter > EDGE_DISTANCE_EPSILON
+        if (!shouldMarkActive) return
+        updateStretchState(effect, distanceAfter)
     }
 
     private fun handleSetDistance(effect: EdgeEffect, distance: Float) {
         if (!enabled) return
-        when {
-            distance > 0f && edgeState[effect] != true -> {
-                edgeState[effect] = true
-                triggerHaptic(HapticEventType.PULL)
-            }
-            distance == 0f -> edgeState[effect] = false
-        }
+        updateStretchState(effect, distance)
     }
 
     private fun handleRelease(effect: EdgeEffect) {
         if (!enabled) return
-        val wasAtEdge = edgeState[effect] == true
-        edgeState[effect] = false
-        if (wasAtEdge) triggerHaptic(HapticEventType.RELEASE)
+        val state = edgeStates.getOrPut(effect) { EdgeStretchState() }
+        val wasStretched = state.stretchActive || state.wasStretchedSession || effect.distance > EDGE_DISTANCE_EPSILON
+        if (wasStretched) {
+            triggerHaptic(HapticEventType.RELEASE)
+        }
+        resetState(effect)
     }
 
     private fun handleAbsorb(effect: EdgeEffect) {
         if (!enabled) return
-        edgeState[effect] = false
         triggerHaptic(HapticEventType.ABSORB)
+        resetState(effect)
+    }
+
+    private fun updateStretchState(effect: EdgeEffect, distanceAfter: Float) {
+        val state = edgeStates.getOrPut(effect) { EdgeStretchState() }
+        val clampedDistance = distanceAfter.coerceAtLeast(0f)
+        val stretchActive = clampedDistance > EDGE_DISTANCE_EPSILON
+
+        if (stretchActive && !state.edgeHitConsumed) {
+            triggerHaptic(HapticEventType.PULL)
+            state.edgeHitConsumed = true
+        }
+
+        state.stretchActive = stretchActive
+        if (stretchActive) {
+            state.wasStretchedSession = true
+        } else {
+            state.edgeHitConsumed = false
+            state.wasStretchedSession = false
+        }
+        state.lastDistance = clampedDistance
+    }
+
+    private fun resetState(effect: EdgeEffect) {
+        edgeStates[effect] = EdgeStretchState()
     }
 
     private enum class HapticEventType { PULL, RELEASE, ABSORB }
@@ -177,7 +203,15 @@ class EdgeEffectHapticsModule : XposedModule() {
         if (!v.hasVibrator()) return
 
         val effect = runCatching {
-            EdgeHapticsBridge.edgeVibrationEffect(pattern, intensity)
+            EdgeHapticsBridge.edgeVibrationEffect(
+                pattern = pattern,
+                intensity = intensity,
+                eventType = when (type) {
+                    HapticEventType.PULL -> EdgeHapticsBridge.EdgeVibrationEvent.EDGE_HIT
+                    HapticEventType.RELEASE -> EdgeHapticsBridge.EdgeVibrationEvent.RELEASE
+                    HapticEventType.ABSORB -> EdgeHapticsBridge.EdgeVibrationEvent.ABSORB
+                },
+            )
         }.onFailure {
             log(Log.DEBUG, TAG, "VibrationEffect build failed [$type]: ${it.message}")
         }.getOrNull() ?: return
@@ -191,5 +225,13 @@ class EdgeEffectHapticsModule : XposedModule() {
 
     companion object {
         private const val TAG = "HapticksEdgeXposed"
+        private const val EDGE_DISTANCE_EPSILON = 0.001f
     }
+
+    private data class EdgeStretchState(
+        var lastDistance: Float = 0f,
+        var stretchActive: Boolean = false,
+        var edgeHitConsumed: Boolean = false,
+        var wasStretchedSession: Boolean = false,
+    )
 }

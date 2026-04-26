@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.first
  */
 object EdgeHapticsBridge {
 
+    enum class EdgeVibrationEvent { EDGE_HIT, RELEASE, ABSORB }
+
     sealed class TestResult {
         object Fired : TestResult()
         object NoVibrator : TestResult()
@@ -46,7 +48,20 @@ object EdgeHapticsBridge {
      * Builds the same [VibrationEffect] used for edge preview and for the LSPosed [EdgeEffect] hooks.
      */
     fun edgeVibrationEffect(pattern: HapticPattern, intensity: Float): VibrationEffect =
-        buildEdgeEffect(pattern, intensity.coerceIn(0f, 1f))
+        edgeVibrationEffect(pattern, intensity, EdgeVibrationEvent.EDGE_HIT)
+
+    fun edgeVibrationEffect(
+        pattern: HapticPattern,
+        intensity: Float,
+        eventType: EdgeVibrationEvent,
+    ): VibrationEffect {
+        val clampedIntensity = intensity.coerceIn(0f, 1f)
+        return when (eventType) {
+            EdgeVibrationEvent.EDGE_HIT -> buildEdgeEffect(pattern, clampedIntensity)
+            EdgeVibrationEvent.RELEASE -> buildReleaseEffect(clampedIntensity)
+            EdgeVibrationEvent.ABSORB -> buildAbsorbEffect(clampedIntensity)
+        }
+    }
 
     private fun resolveVibrator(context: Context): Vibrator? = try {
         val mgr = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -93,6 +108,37 @@ object EdgeHapticsBridge {
                 HapticPattern.DOUBLE_TICK -> VibrationEffect.EFFECT_DOUBLE_CLICK
             }
             VibrationEffect.createPredefined(effectId)
+        }
+    }
+
+    private fun buildReleaseEffect(intensity: Float): VibrationEffect {
+        return try {
+            VibrationEffect.startComposition()
+                .addPrimitive(
+                    VibrationEffect.Composition.PRIMITIVE_LOW_TICK,
+                    (intensity * 0.7f).coerceIn(0.1f, 1f),
+                )
+                .compose()
+        } catch (_: Throwable) {
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+        }
+    }
+
+    private fun buildAbsorbEffect(intensity: Float): VibrationEffect {
+        return try {
+            VibrationEffect.startComposition()
+                .addPrimitive(
+                    VibrationEffect.Composition.PRIMITIVE_CLICK,
+                    intensity.coerceIn(0.15f, 1f),
+                )
+                .addPrimitive(
+                    VibrationEffect.Composition.PRIMITIVE_LOW_TICK,
+                    (intensity * 0.5f).coerceIn(0.1f, 1f),
+                    30,
+                )
+                .compose()
+        } catch (_: Throwable) {
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
         }
     }
 }
