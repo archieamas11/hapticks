@@ -118,8 +118,6 @@ dependencies {
 
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
-    implementation(libs.dexkit)
-
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
