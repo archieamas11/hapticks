@@ -71,7 +71,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.hapticks.app.BuildConfig
 import com.hapticks.app.R
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.data.ThemeMode
 import com.hapticks.app.ui.haptics.hapticClickable
 import java.net.HttpURLConnection
@@ -84,7 +84,7 @@ import org.json.JSONObject
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    settings: HapticsSettings,
+    settings: AppSettings,
     onUseDynamicColorsChange: (Boolean) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onAmoledBlackChange: (Boolean) -> Unit,

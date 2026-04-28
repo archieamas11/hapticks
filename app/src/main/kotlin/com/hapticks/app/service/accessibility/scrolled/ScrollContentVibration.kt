@@ -2,7 +2,7 @@ package com.hapticks.app.service.accessibility.scrolled
 
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
@@ -39,7 +39,7 @@ internal object ScrollContentVibration {
 
     private val perSurface = ConcurrentHashMap<String, ContentState>()
 
-    fun onViewScrolled(event: AccessibilityEvent, settings: HapticsSettings): Decision {
+    fun onViewScrolled(event: AccessibilityEvent, settings: AppSettings): Decision {
         val my = event.maxScrollY
         if (my <= 0) {
             return Decision.None
@@ -92,8 +92,8 @@ internal object ScrollContentVibration {
         }
 
         val rate = settings.scrollHapticEventsPerHundredPx.coerceIn(
-            HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
-            HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
+            AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
+            AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
         )
         val flingScale = flingCreditGainScale(smoothedV)
         val k = (rate / REFERENCE_PX) * flingScale

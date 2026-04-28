@@ -11,7 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.hapticks.app.HapticksApp
 import com.hapticks.app.data.HapticsPreferences
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.data.ThemeMode
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.haptics.HapticPattern
@@ -29,18 +29,18 @@ import kotlinx.coroutines.launch
  * UI state for the Feel Every Tap flow: tap toggle, pattern, and intensity shared with
  * [HapticsAccessibilityService] via [HapticsPreferences].
  */
-class FeelEveryTapViewModel(
+class SettingsViewModel(
     application: Application,
     private val preferences: HapticsPreferences,
     private val engine: HapticEngine,
 ) : AndroidViewModel(application) {
 
-    val settings: StateFlow<HapticsSettings> = preferences.settings
+    val settings: StateFlow<AppSettings> = preferences.settings
         .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000L),
-            initialValue = HapticsSettings.Default,
+            initialValue = AppSettings.Default,
         )
 
     private val _isServiceEnabled = MutableStateFlow(false)
@@ -56,6 +56,10 @@ class FeelEveryTapViewModel(
 
     fun setTapEnabled(enabled: Boolean) {
         viewModelScope.launch { preferences.setTapEnabled(enabled) }
+    }
+
+    fun setHasCompletedOnboarding(completed: Boolean) {
+        viewModelScope.launch { preferences.setHasCompletedOnboarding(completed) }
     }
 
     fun commitIntensity(intensity: Float) {
@@ -150,7 +154,7 @@ class FeelEveryTapViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val app = application as HapticksApp
-                return FeelEveryTapViewModel(app, app.preferences, app.hapticEngine) as T
+                return SettingsViewModel(app, app.preferences, app.hapticEngine) as T
             }
         }
     }

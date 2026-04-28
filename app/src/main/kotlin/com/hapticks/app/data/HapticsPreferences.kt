@@ -24,7 +24,7 @@ class HapticsPreferences(context: Context) {
 
     private val dataStore = context.applicationContext.hapticsDataStore
 
-    val settings: Flow<HapticsSettings> = dataStore.data
+    val settings: Flow<AppSettings> = dataStore.data
         .catch { throwable ->
             if (throwable is IOException) {
                 Log.w(TAG, "DataStore read failed; falling back to defaults", throwable)
@@ -34,41 +34,43 @@ class HapticsPreferences(context: Context) {
             }
         }
         .map { prefs ->
-            HapticsSettings(
-                tapEnabled = prefs[Keys.TAP_ENABLED] ?: HapticsSettings.Default.tapEnabled,
-                intensity = (prefs[Keys.INTENSITY] ?: HapticsSettings.Default.intensity)
+            AppSettings(
+                tapEnabled = prefs[Keys.TAP_ENABLED] ?: AppSettings.Default.tapEnabled,
+                hasCompletedOnboarding = prefs[Keys.HAS_COMPLETED_ONBOARDING] ?: AppSettings.Default.hasCompletedOnboarding,
+                intensity = (prefs[Keys.INTENSITY] ?: AppSettings.Default.intensity)
                     .coerceIn(0f, 1f),
                 pattern = HapticPattern.fromStorageKey(prefs[Keys.PATTERN]),
-                scrollEnabled = prefs[Keys.SCROLL_ENABLED] ?: HapticsSettings.Default.scrollEnabled,
+                scrollEnabled = prefs[Keys.SCROLL_ENABLED] ?: AppSettings.Default.scrollEnabled,
                 scrollHapticEventsPerHundredPx = (prefs[Keys.SCROLL_HAPTIC_EVENTS_PER_HUNDRED_PX]
-                    ?: HapticsSettings.Default.scrollHapticEventsPerHundredPx).coerceIn(
-                    HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
-                    HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
+                    ?: AppSettings.Default.scrollHapticEventsPerHundredPx).coerceIn(
+                    AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
+                    AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
                 ),
-                scrollIntensity = (prefs[Keys.SCROLL_INTENSITY] ?: HapticsSettings.Default.scrollIntensity)
+                scrollIntensity = (prefs[Keys.SCROLL_INTENSITY] ?: AppSettings.Default.scrollIntensity)
                     .coerceIn(0f, 1f),
                 scrollPattern = HapticPattern.fromStorageKey(prefs[Keys.SCROLL_PATTERN])
-                    .takeIf { prefs.contains(Keys.SCROLL_PATTERN) } ?: HapticsSettings.Default.scrollPattern,
+                    .takeIf { prefs.contains(Keys.SCROLL_PATTERN) } ?: AppSettings.Default.scrollPattern,
                 edgePattern = HapticPattern.fromStorageKey(prefs[Keys.EDGE_PATTERN])
-                    .takeIf { prefs.contains(Keys.EDGE_PATTERN) } ?: HapticsSettings.Default.edgePattern,
-                edgeIntensity = (prefs[Keys.EDGE_INTENSITY] ?: HapticsSettings.Default.edgeIntensity)
+                    .takeIf { prefs.contains(Keys.EDGE_PATTERN) } ?: AppSettings.Default.edgePattern,
+                edgeIntensity = (prefs[Keys.EDGE_INTENSITY] ?: AppSettings.Default.edgeIntensity)
                     .coerceIn(0f, 1f),
-                a11yScrollBoundEdge = prefs[Keys.A11Y_SCROLL_BOUND_EDGE] ?: HapticsSettings.Default.a11yScrollBoundEdge,
+                a11yScrollBoundEdge = prefs[Keys.A11Y_SCROLL_BOUND_EDGE] ?: AppSettings.Default.a11yScrollBoundEdge,
                 edgeLsposedLibxposedPath = prefs[Keys.EDGE_LSPOSED_LIBXPOSED_PATH]
-                    ?: HapticsSettings.Default.edgeLsposedLibxposedPath,
-                useDynamicColors = prefs[Keys.USE_DYNAMIC_COLORS] ?: HapticsSettings.Default.useDynamicColors,
+                    ?: AppSettings.Default.edgeLsposedLibxposedPath,
+                useDynamicColors = prefs[Keys.USE_DYNAMIC_COLORS] ?: AppSettings.Default.useDynamicColors,
                 themeMode = try {
-                    ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: HapticsSettings.Default.themeMode.name)
+                    ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: AppSettings.Default.themeMode.name)
                 } catch (_: Exception) {
                     ThemeMode.SYSTEM
                 },
-                amoledBlack = prefs[Keys.AMOLED_BLACK] ?: HapticsSettings.Default.amoledBlack,
-                liquidGlass = prefs[Keys.LIQUID_GLASS] ?: HapticsSettings.Default.liquidGlass,
-                seedColor = prefs[Keys.SEED_COLOR] ?: HapticsSettings.Default.seedColor,
+                amoledBlack = prefs[Keys.AMOLED_BLACK] ?: AppSettings.Default.amoledBlack,
+                liquidGlass = prefs[Keys.LIQUID_GLASS] ?: AppSettings.Default.liquidGlass,
+                seedColor = prefs[Keys.SEED_COLOR] ?: AppSettings.Default.seedColor,
             )
         }
 
     suspend fun setTapEnabled(enabled: Boolean) = edit { it[Keys.TAP_ENABLED] = enabled }
+    suspend fun setHasCompletedOnboarding(completed: Boolean) = edit { it[Keys.HAS_COMPLETED_ONBOARDING] = completed }
     suspend fun setIntensity(intensity: Float) = edit {
         it[Keys.INTENSITY] = intensity.coerceIn(0f, 1f)
     }
@@ -80,8 +82,8 @@ class HapticsPreferences(context: Context) {
     }
     suspend fun setScrollHapticEventsPerHundredPx(value: Float) = edit {
         it[Keys.SCROLL_HAPTIC_EVENTS_PER_HUNDRED_PX] = value.coerceIn(
-            HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
-            HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
+            AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
+            AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
         )
     }
     suspend fun setEdgePattern(pattern: HapticPattern) = edit { it[Keys.EDGE_PATTERN] = pattern.name }
@@ -108,6 +110,7 @@ class HapticsPreferences(context: Context) {
 
     private object Keys {
         val TAP_ENABLED = booleanPreferencesKey("tap_enabled")
+        val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val INTENSITY = floatPreferencesKey("intensity")
         val PATTERN = stringPreferencesKey("pattern")
         val SCROLL_ENABLED = booleanPreferencesKey("scroll_enabled")

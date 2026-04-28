@@ -1,6 +1,6 @@
 package com.hapticks.app.xposed
 
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import io.github.libxposed.service.XposedService
 
 object XposedEdgeRemotePrefs {
@@ -11,7 +11,7 @@ object XposedEdgeRemotePrefs {
     const val KEY_PATTERN: String = "edge_pattern"
     const val KEY_INTENSITY: String = "edge_intensity"
 
-    fun push(service: XposedService, settings: HapticsSettings) {
+    fun push(service: XposedService, settings: AppSettings) {
         val prefs = service.getRemotePreferences(GROUP)
         prefs.edit().apply {
             putBoolean(KEY_ENABLED, settings.edgeLsposedLibxposedPath)

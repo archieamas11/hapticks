@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,17 +43,19 @@ import com.hapticks.app.ui.screens.HomeScreen
 import com.hapticks.app.ui.screens.edgehaptics.EdgeHapticsScreen
 import com.hapticks.app.ui.screens.scrollhaptics.ScrollHapticsScreen
 import com.hapticks.app.ui.screens.SettingsScreen
+import com.hapticks.app.ui.screens.OnboardingScreen
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.ui.haptics.ProvideHapticksEdgeOverscrollHaptics
 import com.hapticks.app.ui.theme.HapticksTheme
-import com.hapticks.app.viewmodel.FeelEveryTapViewModel
+import com.hapticks.app.viewmodel.SettingsViewModel
 import com.hapticks.app.viewmodel.EdgeHapticsViewModel
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: FeelEveryTapViewModel by viewModels {
-        FeelEveryTapViewModel.factory(application)
+    private val viewModel: SettingsViewModel by viewModels {
+        SettingsViewModel.factory(application)
     }
 
     private val edgeViewModel: EdgeHapticsViewModel by viewModels {
@@ -78,8 +81,20 @@ class MainActivity : ComponentActivity() {
                 val backdrop = rememberLayerBackdrop()
 
                 ProvideHapticksEdgeOverscrollHaptics {
-                    var route by rememberSaveable { mutableStateOf(Route.HOME) }
+                    var route by rememberSaveable { mutableStateOf(Route.UNINITIALIZED) }
                     val lastRootRoute = rememberSaveable { mutableStateOf(Route.HOME) }
+
+                    LaunchedEffect(settings) {
+                        if (route == Route.UNINITIALIZED && settings !== AppSettings.Default) {
+                            route = if (settings.hasCompletedOnboarding) Route.HOME else Route.ONBOARDING
+                        }
+                    }
+
+                    if (route == Route.UNINITIALIZED) {
+                        // Wait for DataStore to load
+                        Box(modifier = Modifier.fillMaxSize().background(backgroundColor))
+                        return@ProvideHapticksEdgeOverscrollHaptics
+                    }
 
                     if (route == Route.HOME || route == Route.SETTINGS) {
                         lastRootRoute.value = route
@@ -127,6 +142,16 @@ class MainActivity : ComponentActivity() {
 
                             Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
                                 when (currentRoute) {
+                                    Route.UNINITIALIZED -> {}
+                                    Route.ONBOARDING -> {
+                                        BackHandler { finish() }
+                                        OnboardingScreen(
+                                            onComplete = {
+                                                viewModel.setHasCompletedOnboarding(true)
+                                                route = Route.HOME
+                                            }
+                                        )
+                                    }
                                     Route.FEEL_EVERY_TAP -> {
                                         BackHandler { route = Route.HOME }
                                         FeelEveryTapScreen(
@@ -224,7 +249,7 @@ class MainActivity : ComponentActivity() {
         viewModel.refreshServiceState()
     }
 
-    private enum class Route { HOME, FEEL_EVERY_TAP, EDGE_HAPTICS, TACTILE_SCROLLING, SETTINGS }
+    private enum class Route { UNINITIALIZED, ONBOARDING, HOME, FEEL_EVERY_TAP, EDGE_HAPTICS, TACTILE_SCROLLING, SETTINGS }
 
     private fun openAccessibilitySettings() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {

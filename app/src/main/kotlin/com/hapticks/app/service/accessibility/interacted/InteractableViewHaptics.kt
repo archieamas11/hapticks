@@ -2,7 +2,7 @@ package com.hapticks.app.service.accessibility.interacted
 
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 
 object InteractableViewHaptics {
@@ -13,7 +13,7 @@ object InteractableViewHaptics {
         get() = AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION or
             AccessibilityEvent.CONTENT_CHANGE_TYPE_CHECKED
 
-    fun eventTypeMask(settings: HapticsSettings): Int {
+    fun eventTypeMask(settings: AppSettings): Int {
         if (!settings.tapEnabled) return 0
         return AccessibilityEvent.TYPE_VIEW_CLICKED or
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
@@ -25,7 +25,7 @@ object InteractableViewHaptics {
         return (types and toggleContentChangeMask) != 0
     }
 
-    fun handle(engine: HapticEngine, settings: HapticsSettings, event: AccessibilityEvent): Boolean {
+    fun handle(engine: HapticEngine, settings: AppSettings, event: AccessibilityEvent): Boolean {
         if (!settings.tapEnabled) return true
 
         return when (event.eventType) {

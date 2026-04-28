@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.hapticks.app.HapticksApp
 import com.hapticks.app.data.HapticsPreferences
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.edge.EdgeHapticsBridge
 import com.hapticks.app.haptics.HapticPattern
 import kotlinx.coroutines.Dispatchers
@@ -30,12 +30,12 @@ class EdgeHapticsViewModel(
         object NoVibrator : TestEvent()
     }
 
-    val settings: StateFlow<HapticsSettings> = preferences.settings
+    val settings: StateFlow<AppSettings> = preferences.settings
         .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000L),
-            initialValue = HapticsSettings.Default,
+            initialValue = AppSettings.Default,
         )
 
     private val _testEvent = MutableStateFlow<TestEvent?>(null)

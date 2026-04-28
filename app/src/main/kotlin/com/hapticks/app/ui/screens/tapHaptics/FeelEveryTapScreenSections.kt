@@ -32,7 +32,7 @@ import com.hapticks.app.ui.haptics.SliderTickStepsDefault
 import com.hapticks.app.ui.haptics.performHapticSliderTick
 import com.hapticks.app.ui.haptics.slider01ToTickIndex
 import com.hapticks.app.R
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
 import com.hapticks.app.ui.components.HapticToggleRow
 import com.hapticks.app.ui.components.PatternSelector
@@ -54,7 +54,7 @@ internal fun FeelEveryTapBackPill(onBack: () -> Unit) {
 
 @Composable
 internal fun FeelEveryTapInteractionSection(
-    settings: HapticsSettings,
+    settings: AppSettings,
     onTapEnabledChange: (Boolean) -> Unit,
     onIntensityCommit: (Float) -> Unit,
 ) {
@@ -149,7 +149,7 @@ private fun FeelEveryTapIntensityBadge(percent: Int) {
 
 @Composable
 internal fun FeelEveryTapPatternSection(
-    settings: HapticsSettings,
+    settings: AppSettings,
     onPatternSelected: (HapticPattern) -> Unit,
 ) {
     Column {

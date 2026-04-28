@@ -6,7 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.hapticks.app.HapticksApp
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -36,7 +36,7 @@ object EdgeHapticsBridge {
                     try {
                         runBlocking { flow.first() }
                     } catch (_: Throwable) {
-                        HapticsSettings.Default
+                        AppSettings.Default
                     }
                 }
             vibrator.vibrate(buildEdgeEffect(s.edgePattern, s.edgeIntensity), attrs)

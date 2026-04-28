@@ -19,7 +19,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
 import com.hapticks.app.ui.components.EnableServiceCard
 import com.hapticks.app.ui.components.HapticTestButton
@@ -27,7 +27,7 @@ import com.hapticks.app.ui.components.HapticTestButton
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeelEveryTapScreen(
-    settings: HapticsSettings,
+    settings: AppSettings,
     isServiceEnabled: Boolean,
     onTapEnabledChange: (Boolean) -> Unit,
     onIntensityCommit: (Float) -> Unit,

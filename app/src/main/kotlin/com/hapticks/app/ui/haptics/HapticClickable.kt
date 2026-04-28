@@ -12,7 +12,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hapticks.app.HapticksApp
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.haptics.HapticPattern
 import kotlin.math.roundToInt
@@ -38,7 +38,7 @@ fun Context.performHapticClick() {
     val snapshot = try {
         runBlocking { app.preferences.settings.first() }
     } catch (_: Throwable) {
-        HapticsSettings.Default
+        AppSettings.Default
     }
     app.hapticEngine.play(snapshot.pattern, snapshot.intensity)
 }
@@ -59,9 +59,9 @@ fun Modifier.hapticClickable(
     val app = context.applicationContext as? HapticksApp
     val engine = remember(app) { app?.hapticEngine }
     val settingsFlow = remember(app) {
-        app?.preferences?.settings ?: flowOf(HapticsSettings.Default)
+        app?.preferences?.settings ?: flowOf(AppSettings.Default)
     }
-    val settings by settingsFlow.collectAsStateWithLifecycle(HapticsSettings.Default)
+    val settings by settingsFlow.collectAsStateWithLifecycle(AppSettings.Default)
     val interactionSource = remember { MutableInteractionSource() }
 
     clickable(

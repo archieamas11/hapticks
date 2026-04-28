@@ -16,19 +16,25 @@ So I built Hapticks to fix that and make interactions feel more alive and satisf
 * Improves the feel of scrolling and touch actions
 * Makes the overall experience more “premium”
 
-## ✨ Features
+## Features
 
 * **Feel Every Tap**
-  Adds responsive haptic feedback to common UI interactions across apps—buttons, toggles, switches, checkboxes, and more—making every tap feel intentional.
+  Responsive haptic feedback across buttons, toggles, switches, checkboxes, and more—making every interaction feel alive.
 
 * **Tactile Scrolling**
-  Enhances scrolling with subtle haptic feedback, creating a smoother, more physical and immersive navigation experience.
+  Subtle vibrations while scrolling for a smoother, more physical and immersive navigation experience.
 
 * **Edge Haptics**
-  Delivers a distinct vibration when reaching the top or bottom of a scrollable view, clearly signaling the end of content.
+  Distinct feedback when you reach the top or bottom of a scrollable view, so you always know when content ends.
+
+* **Lots of Haptic Patterns**
+  Custom haptic patterns that feel natural, refined, and satisfying.
+
+* **Liquid Glass Effect**
+  iOS 26–inspired liquid glass bottom navigation for a sleek, modern look.
 
 * **Modern Material 3 Design**
-  Built with the latest Android Material 3 expressive design system for a clean, dynamic, and visually polished interface.
+  Built with the latest Material 3 expressive system for a clean, dynamic, and polished interface.
 
 
 ## Requirements

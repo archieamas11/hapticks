@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.hapticks.app.haptics.HapticPattern
 
 @Immutable
-data class HapticsSettings(
+data class AppSettings(
     // Tap Haptics Default Settings
     val tapEnabled: Boolean = true,
     val intensity: Float = 1.0f,
@@ -35,7 +35,7 @@ data class HapticsSettings(
     companion object {
         const val MIN_SCROLL_EVENTS_PER_HUNDRED_PX = 0f
         const val MAX_SCROLL_EVENTS_PER_HUNDRED_PX = 20f
-        val Default: HapticsSettings = HapticsSettings()
+        val Default: AppSettings = AppSettings()
     }
 }
 

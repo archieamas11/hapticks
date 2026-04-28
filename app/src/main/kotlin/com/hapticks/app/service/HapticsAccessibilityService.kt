@@ -3,7 +3,7 @@ package com.hapticks.app.service
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import com.hapticks.app.HapticksApp
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.service.accessibility.isAccessibilityEventFromOwnApplication
 import com.hapticks.app.service.accessibility.interacted.InteractableViewHaptics
@@ -20,7 +20,7 @@ class HapticsAccessibilityService : AccessibilityService() {
     private var settingsJob: Job? = null
 
     @Volatile
-    private var current: HapticsSettings = HapticsSettings.Default
+    private var current: AppSettings = AppSettings.Default
 
     private lateinit var engine: HapticEngine
 
@@ -29,7 +29,7 @@ class HapticsAccessibilityService : AccessibilityService() {
         val app = application as HapticksApp
         engine = app.hapticEngine
 
-        applyEventMask(HapticsSettings.Default)
+        applyEventMask(AppSettings.Default)
 
         settingsJob = app.preferences.settings
             .distinctUntilChanged()
@@ -94,7 +94,7 @@ class HapticsAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    private fun applyEventMask(settings: HapticsSettings) {
+    private fun applyEventMask(settings: AppSettings) {
         val info = serviceInfo ?: return
         var mask = InteractableViewHaptics.eventTypeMask(settings)
         if (settings.scrollEnabled || settings.a11yScrollBoundEdge) {

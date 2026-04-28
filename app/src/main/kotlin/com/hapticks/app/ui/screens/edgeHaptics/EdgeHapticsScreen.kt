@@ -51,7 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
 import com.hapticks.app.ui.components.HapticTestButton
 import com.hapticks.app.ui.components.HapticToggleRow
@@ -67,7 +67,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EdgeHapticsScreen(
-    settings: HapticsSettings,
+    settings: AppSettings,
     testEvent: EdgeHapticsViewModel.TestEvent?,
     isServiceEnabled: Boolean,
     isLsposedXposedBridgeActive: Boolean,

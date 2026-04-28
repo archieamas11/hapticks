@@ -41,7 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
-import com.hapticks.app.data.HapticsSettings
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
 import com.hapticks.app.ui.components.EnableServiceCard
 import com.hapticks.app.ui.components.HapticTestButton
@@ -57,7 +57,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScrollHapticsScreen(
-    settings: HapticsSettings,
+    settings: AppSettings,
     isServiceEnabled: Boolean,
     onScrollEnabledChange: (Boolean) -> Unit,
     onScrollHapticDensityCommit: (Float) -> Unit,
@@ -180,17 +180,17 @@ private fun BackPill(onBack: () -> Unit) {
 
 private fun scrollDensitySliderToEvents(slider01: Float): Float {
     val t = slider01.coerceIn(0f, 1f)
-    return HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX +
-        t * (HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX - HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX)
+    return AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX +
+        t * (AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX - AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX)
 }
 
 private fun eventsToScrollDensitySlider(eventsPerHundredPx: Float): Float {
     val e = eventsPerHundredPx.coerceIn(
-        HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
-        HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
+        AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX,
+        AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX,
     )
-    return ((e - HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX) /
-        (HapticsSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX - HapticsSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX))
+    return ((e - AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX) /
+        (AppSettings.MAX_SCROLL_EVENTS_PER_HUNDRED_PX - AppSettings.MIN_SCROLL_EVENTS_PER_HUNDRED_PX))
         .coerceIn(0f, 1f)
 }
 
