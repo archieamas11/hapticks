@@ -4,6 +4,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
+import com.hapticks.app.haptics.HapticPattern
 
 object InteractableViewHaptics {
 
@@ -39,8 +40,8 @@ object InteractableViewHaptics {
                 if (changeTypes and toggleContentChangeMask == 0) return true
                 if (!isSwitchLikeToggleForWindowEvent(event, changeTypes)) return true
                 engine.play(
-                    settings.pattern,
-                    settings.intensity,
+                    HapticPattern.DOUBLE_CLICK,
+                    1.0f,
                     throttleMs = TOGGLE_COALESCE_THROTTLE_MS,
                 )
                 true

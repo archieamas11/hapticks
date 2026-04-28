@@ -3,6 +3,8 @@ package com.hapticks.app.data
 import androidx.compose.runtime.Immutable
 import com.hapticks.app.haptics.HapticPattern
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 @Immutable
 data class AppSettings(
     // Tap Haptics Default Settings
@@ -38,5 +40,3 @@ data class AppSettings(
         val Default: AppSettings = AppSettings()
     }
 }
-
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
