@@ -44,7 +44,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -73,8 +72,10 @@ import com.hapticks.app.R
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.data.ThemeMode
 import com.hapticks.app.service.HapticsAccessibilityService
+import com.hapticks.app.ui.components.HapticToggleRow
 import com.hapticks.app.ui.haptics.hapticClickable
-import com.hapticks.app.ui.haptics.performHapticClick
+import com.hapticks.app.ui.haptics.performHapticDoubleClick
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,48 +138,33 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_section_appearance),
                         icon = Icons.Rounded.Palette,
                     ) {
-                        SettingsRow(
+                        HapticToggleRow(
                             title = stringResource(R.string.settings_dynamic_color_title),
                             subtitle = stringResource(R.string.settings_dynamic_color_subtitle),
-                            position = RowPosition.Top,
-                            trailing = {
-                                Switch(
-                                    checked = settings.useDynamicColors,
-                                    onCheckedChange = onUseDynamicColorsChange,
-                                )
-                            },
+                            checked = settings.useDynamicColors,
+                            onCheckedChange = onUseDynamicColorsChange,
                         )
 
                         RowDivider()
 
-                        SettingsRow(
+                        HapticToggleRow(
                             title = stringResource(R.string.settings_amoled_title),
                             subtitle = if (appInDarkTheme) {
                                 stringResource(R.string.settings_amoled_subtitle)
                             } else {
                                 stringResource(R.string.settings_amoled_subtitle_light)
                             },
-                            position = RowPosition.Middle,
-                            trailing = {
-                                Switch(
-                                    checked = settings.amoledBlack,
-                                    onCheckedChange = onAmoledBlackChange,
-                                )
-                            },
+                            checked = settings.amoledBlack,
+                            onCheckedChange = onAmoledBlackChange,
                         )
 
                         RowDivider()
 
-                        SettingsRow(
+                        HapticToggleRow(
                             title = stringResource(R.string.settings_liquid_glass_title),
                             subtitle = stringResource(R.string.settings_liquid_glass_subtitle),
-                            position = RowPosition.Bottom,
-                            trailing = {
-                                Switch(
-                                    checked = settings.liquidGlass,
-                                    onCheckedChange = onLiquidGlassChange,
-                                )
-                            },
+                            checked = settings.liquidGlass,
+                            onCheckedChange = onLiquidGlassChange,
                         )
 
                         RowDivider()
@@ -195,16 +181,11 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_toggle_haptics_header),
                         icon = Icons.Rounded.Vibration,
                     ) {
-                        SettingsRow(
+                        HapticToggleRow(
                             title = stringResource(R.string.settings_toggle_haptics_title),
                             subtitle = stringResource(R.string.settings_toggle_haptics_subtitle),
-                            position = RowPosition.Single,
-                            trailing = {
-                                Switch(
-                                    checked = settings.hapticsEnabled,
-                                    onCheckedChange = onHapticsEnabledChange,
-                                )
-                            },
+                            checked = settings.hapticsEnabled,
+                            onCheckedChange = onHapticsEnabledChange,
                         )
                     }
                 }
@@ -354,8 +335,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-  
-                
+
                 item(key = "bottom_inset") {
                     Spacer(modifier = Modifier.height(96.dp))
                 }
@@ -452,14 +432,16 @@ private fun ChangelogModal(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            text = markdownToAnnotatedString(uiState.release.body),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        MarkdownText(
+                            markdown = uiState.release.body,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 360.dp)
                                 .verticalScroll(rememberScrollState()),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            linkColor = MaterialTheme.colorScheme.primary,
                         )
                         TextButton(onClick = { onOpenRelease(uiState.release.url) }) {
                             Text(text = stringResource(R.string.settings_changelog_open_release))
@@ -663,7 +645,7 @@ private fun ThemeModeRow(
                 SegmentedButton(
                     selected = selected == option.mode,
                     onClick = {
-                        context.performHapticClick()
+                        context.performHapticDoubleClick()
                         onThemeModeChange(option.mode)
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),

@@ -56,8 +56,6 @@ class HapticsPreferences(context: Context) {
                 edgeIntensity = (prefs[Keys.EDGE_INTENSITY] ?: AppSettings.Default.edgeIntensity)
                     .coerceIn(0f, 1f),
                 a11yScrollBoundEdge = prefs[Keys.A11Y_SCROLL_BOUND_EDGE] ?: AppSettings.Default.a11yScrollBoundEdge,
-                edgeLsposedLibxposedPath = prefs[Keys.EDGE_LSPOSED_LIBXPOSED_PATH]
-                    ?: AppSettings.Default.edgeLsposedLibxposedPath,
                 useDynamicColors = prefs[Keys.USE_DYNAMIC_COLORS] ?: AppSettings.Default.useDynamicColors,
                 themeMode = try {
                     ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: AppSettings.Default.themeMode.name)
@@ -94,7 +92,6 @@ class HapticsPreferences(context: Context) {
     }
     suspend fun setA11yScrollBoundEdge(enabled: Boolean) = edit { it[Keys.A11Y_SCROLL_BOUND_EDGE] = enabled }
 
-    suspend fun setEdgeLsposedLibxposedPath(enabled: Boolean) = edit { it[Keys.EDGE_LSPOSED_LIBXPOSED_PATH] = enabled }
 
     suspend fun setUseDynamicColors(enabled: Boolean) = edit { it[Keys.USE_DYNAMIC_COLORS] = enabled }
     suspend fun setThemeMode(mode: ThemeMode) = edit { it[Keys.THEME_MODE] = mode.name }
@@ -123,7 +120,6 @@ class HapticsPreferences(context: Context) {
         val EDGE_PATTERN = stringPreferencesKey("edge_pattern")
         val EDGE_INTENSITY = floatPreferencesKey("edge_intensity")
         val A11Y_SCROLL_BOUND_EDGE = booleanPreferencesKey("a11y_scroll_bound_edge")
-        val EDGE_LSPOSED_LIBXPOSED_PATH = booleanPreferencesKey("edge_lsposed_libxposed_path")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val AMOLED_BLACK = booleanPreferencesKey("amoled_black")

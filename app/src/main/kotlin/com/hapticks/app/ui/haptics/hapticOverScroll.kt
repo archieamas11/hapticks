@@ -2,7 +2,6 @@
 
 package com.hapticks.app.ui.haptics
 
-import android.content.Context
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.OverscrollFactory
@@ -21,10 +20,8 @@ import com.hapticks.app.HapticksApp
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.haptics.HapticPattern
-import kotlin.math.abs
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.runBlocking
+import kotlin.math.abs
 
 private const val EdgePullSlopPx = 0.1f
 
@@ -129,24 +126,25 @@ fun ProvideHapticksEdgeOverscrollHaptics(content: @Composable () -> Unit) {
     }
     val settings by settingsFlow.collectAsStateWithLifecycle(AppSettings.Default)
     val baseFactory = rememberPlatformOverscrollFactory()
-    val factory = remember(baseFactory, engine, settings.edgePattern, settings.edgeIntensity) {
-        HapticInstrumentedOverscrollFactory(baseFactory, engine, settings.edgePattern, settings.edgeIntensity)
+    val factory = remember(
+        baseFactory,
+        engine,
+        settings.edgePattern,
+        settings.edgeIntensity,
+        settings.hapticsEnabled
+    ) {
+        if (settings.hapticsEnabled) {
+            HapticInstrumentedOverscrollFactory(
+                baseFactory,
+                engine,
+                settings.edgePattern,
+                settings.edgeIntensity
+            )
+        } else {
+            baseFactory
+        }
     }
     CompositionLocalProvider(LocalOverscrollFactory provides factory) {
         content()
     }
-}
-
-fun Context.performAppEdgeOverscrollHaptic() {
-    val app = applicationContext as? HapticksApp ?: return
-    val snapshot = try {
-        runBlocking { app.preferences.settings.first() }
-    } catch (_: Throwable) {
-        AppSettings.Default
-    }
-    app.hapticEngine.play(
-        pattern = snapshot.edgePattern,
-        intensity = snapshot.edgeIntensity,
-        throttleMs = 0L,
-    )
 }

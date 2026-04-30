@@ -5,7 +5,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -20,11 +19,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,28 +39,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.star
 import com.hapticks.app.BuildConfig
 import com.hapticks.app.R
-import com.hapticks.app.ui.haptics.withDefaultHaptic
 import com.hapticks.app.ui.components.BackPill
+import com.hapticks.app.ui.components.RoundedPolygonShape
+import com.hapticks.app.ui.haptics.withDefaultHaptic
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.URLEncoder
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 data class LatestRelease(
@@ -73,6 +70,12 @@ data class LatestRelease(
     val tagName: String,
     val url: String,
     val apkDownloadUrl: String?,
+)
+
+private val cookie12 = RoundedPolygon.star(
+    numVerticesPerRadius = 8,
+    innerRadius = 0.6f,
+    rounding = CornerRounding(0.15f)
 )
 
 sealed interface UpdateCheckUiState {
@@ -113,7 +116,7 @@ fun UpdateCheckScreen(
                         text = stringResource(R.string.settings_check_updates_title),
                         style = MaterialTheme.typography.displaySmall.copy(
                             color = colorScheme.onBackground,
-                            fontWeight = FontWeight.Normal
+                            fontWeight = FontWeight.Normal,
                         ),
                     )
                 },
@@ -207,12 +210,12 @@ fun UpdateCheckScreen(
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedPolygonShape(cookie12))
                                 .background(colorScheme.primaryContainer.copy(alpha = 0.35f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Download,
+                                painter = painterResource(R.drawable.mobile_arrow_down_24px),
                                 contentDescription = null,
                                 modifier = Modifier.size(56.dp),
                                 tint = colorScheme.primary,
@@ -249,11 +252,13 @@ fun UpdateCheckScreen(
                                 .background(colorScheme.surfaceContainerHigh)
                                 .padding(16.dp)
                         ) {
-                            Text(
-                                text = markdownToAnnotatedString(uiState.release.body),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onSurfaceVariant,
+                            MarkdownText(
+                                markdown = uiState.release.body,
                                 modifier = Modifier.verticalScroll(rememberScrollState()),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = colorScheme.onSurfaceVariant
+                                ),
+                                linkColor = colorScheme.primary,
                             )
                         }
                     }
@@ -321,7 +326,7 @@ private fun UpdateCheckBottomActions(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = colorScheme.primary,
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
                         width = 1.5.dp
                     )
                 ) {
@@ -353,7 +358,7 @@ private fun UpdateCheckBottomActions(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = colorScheme.primary,
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
                         width = 1.5.dp
                     )
                 ) {
@@ -407,16 +412,15 @@ private fun UpdateCheckEmptyState(body: String) {
         verticalArrangement = Arrangement.spacedBy(24.dp),
         modifier = Modifier.padding(vertical = 48.dp)
     ) {
-        // Icon with accent background circle (matching screenshot style)
         Box(
             modifier = Modifier
                 .size(140.dp)
-                .clip(CircleShape)
+                .clip(RoundedPolygonShape(cookie12))
                 .background(colorScheme.primaryContainer.copy(alpha = 0.35f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.Download,
+                painter = painterResource(R.drawable.mobile_arrow_down_24px),
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
                 tint = colorScheme.primary,
@@ -436,26 +440,30 @@ private fun UpdateCheckEmptyState(body: String) {
     }
 }
 
+// REST OF THE LOGIC REMAINS THE SAME...
+
 internal suspend fun fetchLatestRelease(): LatestRelease? = withContext(Dispatchers.IO) {
     val endpoint = "https://api.github.com/repos/archieamas11/hapticks/releases/latest"
     fetchReleaseFromEndpoint(endpoint)
 }
 
-internal suspend fun fetchReleaseForVersion(versionName: String): LatestRelease? = withContext(Dispatchers.IO) {
-    val normalizedVersion = versionName.trim().removePrefix("v").removePrefix("V")
-    if (normalizedVersion.isBlank()) return@withContext null
+internal suspend fun fetchReleaseForVersion(versionName: String): LatestRelease? =
+    withContext(Dispatchers.IO) {
+        val normalizedVersion = versionName.trim().removePrefix("v").removePrefix("V")
+        if (normalizedVersion.isBlank()) return@withContext null
 
-    val candidateTags = listOf(
-        normalizedVersion,
-        "v$normalizedVersion",
-    ).distinct()
+        val candidateTags = listOf(
+            normalizedVersion,
+            "v$normalizedVersion",
+        ).distinct()
 
-    candidateTags.firstNotNullOfOrNull { candidateTag ->
-        val encodedTag = URLEncoder.encode(candidateTag, StandardCharsets.UTF_8.toString())
-        val endpoint = "https://api.github.com/repos/archieamas11/hapticks/releases/tags/$encodedTag"
-        fetchReleaseFromEndpoint(endpoint)
+        candidateTags.firstNotNullOfOrNull { candidateTag ->
+            val encodedTag = URLEncoder.encode(candidateTag, StandardCharsets.UTF_8.toString())
+            val endpoint =
+                "https://api.github.com/repos/archieamas11/hapticks/releases/tags/$encodedTag"
+            fetchReleaseFromEndpoint(endpoint)
+        }
     }
-}
 
 private fun fetchReleaseFromEndpoint(endpoint: String): LatestRelease? {
     val connection = (URL(endpoint).openConnection() as? HttpURLConnection)
@@ -582,7 +590,8 @@ private fun registerApkInstallReceiver(context: Context, downloadId: Long) {
             runCatching { receiverContext.unregisterReceiver(this) }
 
             val manager =
-                receiverContext.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager ?: return
+                receiverContext.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+                    ?: return
             val apkUri = manager.getUriForDownloadedFile(downloadId) ?: return
 
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -601,129 +610,9 @@ private fun registerApkInstallReceiver(context: Context, downloadId: Long) {
         }
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        context.registerReceiver(
-            receiver,
-            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            Context.RECEIVER_NOT_EXPORTED,
-        )
-    } else {
-        @Suppress("DEPRECATION")
-        context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-    }
-}
-
-internal fun markdownToAnnotatedString(markdown: String): AnnotatedString {
-    val lines = markdown.replace("\r\n", "\n").split('\n')
-    val builder = AnnotatedString.Builder()
-    var inCodeFence = false
-
-    lines.forEachIndexed { index, rawLine ->
-        val line = rawLine.trimEnd()
-        val isLastLine = index == lines.lastIndex
-
-        when {
-            line.trimStart().startsWith("```") -> {
-                inCodeFence = !inCodeFence
-            }
-
-            inCodeFence -> {
-                builder.withStyle(
-                    SpanStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                    )
-                ) {
-                    append(line)
-                }
-            }
-
-            line.startsWith("### ") -> {
-                builder.withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                    )
-                ) { append(line.removePrefix("### ").trim()) }
-            }
-
-            line.startsWith("## ") -> {
-                builder.withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                    )
-                ) { append(line.removePrefix("## ").trim()) }
-            }
-
-            line.startsWith("# ") -> {
-                builder.withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                    )
-                ) { append(line.removePrefix("# ").trim()) }
-            }
-
-            line.startsWith("- ") || line.startsWith("* ") -> {
-                builder.append("• ")
-                appendMarkdownInline(builder, line.drop(2))
-            }
-
-            line.matches(Regex("""^\d+\.\s+.*$""")) -> {
-                appendMarkdownInline(builder, line)
-            }
-
-            else -> appendMarkdownInline(builder, line)
-        }
-
-        if (!isLastLine) builder.append("\n")
-    }
-
-    return builder.toAnnotatedString()
-}
-
-private fun appendMarkdownInline(builder: AnnotatedString.Builder, rawText: String) {
-    val inlinePattern = Regex("""(\*\*[^*]+\*\*|`[^`]+`|\*[^\*]+\*)""")
-    var cursor = 0
-
-    inlinePattern.findAll(rawText).forEach { match ->
-        if (match.range.first > cursor) {
-            builder.append(rawText.substring(cursor, match.range.first))
-        }
-
-        val token = match.value
-        when {
-            token.startsWith("**") && token.endsWith("**") -> {
-                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(token.removePrefix("**").removeSuffix("**"))
-                }
-            }
-
-            token.startsWith("`") && token.endsWith("`") -> {
-                builder.withStyle(
-                    SpanStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                    )
-                ) {
-                    append(token.removePrefix("`").removeSuffix("`"))
-                }
-            }
-
-            token.startsWith("*") && token.endsWith("*") -> {
-                builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                    append(token.removePrefix("*").removeSuffix("*"))
-                }
-            }
-
-            else -> builder.append(token)
-        }
-
-        cursor = match.range.last + 1
-    }
-
-    if (cursor < rawText.length) {
-        builder.append(rawText.substring(cursor))
-    }
+    context.registerReceiver(
+        receiver,
+        IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+        Context.RECEIVER_NOT_EXPORTED,
+    )
 }

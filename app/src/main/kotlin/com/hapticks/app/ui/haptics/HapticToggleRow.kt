@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -14,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.hapticks.app.haptics.HapticPattern
 import com.hapticks.app.ui.haptics.hapticClickable
 import com.hapticks.app.ui.haptics.performHapticDoubleClick
 
@@ -45,7 +48,7 @@ fun HapticToggleRow(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .hapticClickable(pattern = HapticPattern.DOUBLE_CLICK) { onCheckedChange(!checked) },
+                .hapticClickable { onCheckedChange(!checked) },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
@@ -68,6 +71,17 @@ fun HapticToggleRow(
             onCheckedChange = { value ->
                 context.performHapticDoubleClick()
                 onCheckedChange(value)
+            },
+            thumbContent = if (checked) {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            } else {
+                null
             },
             colors = switchColors,
         )

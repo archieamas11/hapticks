@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 /**
- * Builds [VibrationEffect]s for scroll-edge feedback (accessibility / LSPosed hooks).
+ * Builds [VibrationEffect]s for scroll-edge feedback (accessibility hooks).
  */
 object EdgeHapticsBridge {
 
@@ -45,9 +45,6 @@ object EdgeHapticsBridge {
             TestResult.NoVibrator
         }
     }
-
-    fun edgeVibrationEffect(pattern: HapticPattern, intensity: Float): VibrationEffect =
-        edgeVibrationEffect(pattern, intensity, EdgeVibrationEvent.EDGE_HIT)
 
     fun edgeVibrationEffect(
         pattern: HapticPattern,

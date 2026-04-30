@@ -1,56 +1,65 @@
-# Hapticks
+<p align="center">
+  <img src="assets/product-image.png" alt="Hapticks Product Showcase" width="100%" />
+</p>
 
-Hapticks is an Android app + LSPosed module that adds haptic feedback across apps and system UI to make your phone feel more responsive and premium.
+<h1 align="center">Hapticks</h1>
 
-## Why I Built This
+<p align="center">
+  <b>Feel Every Tap.</b><br>
+  Custom haptic feedback for every interaction. Subtle, powerful, yours.
+</p>
 
-I’m a big fan of haptic feedback. Some phones especially Pixel devices have really good haptics, but they’re underutilized.
+<p align="center">
+  <img alt="Platform" src="https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white">
+  <img alt="UI" src="https://img.shields.io/badge/UI-Material%203-6200EE?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue?style=flat-square">
+  <img alt="Status" src="https://img.shields.io/badge/Status-Work%20In%20Progress-orange?style=flat-square">
+</p>
 
-A lot of apps and even parts of Android don’t give haptic feedback when you interact with them. That makes the experience feel a bit flat.
+---
 
-So I built Hapticks to fix that and make interactions feel more alive and satisfying.
+## ✨ Why Hapticks?
 
-## What It Does
+I’m a big fan of haptic feedback. Some phones especially Pixel devices have really good haptics, but
+they’re **underutilized**.
 
-* Adds haptic feedback to UI interactions
-* Improves the feel of scrolling and touch actions
-* Makes the overall experience more “premium”
+A lot of apps and even parts of Android don’t give haptic feedback when you interact with them. That
+makes the experience feel flat.
 
-## Features
+**Hapticks fixes that.** It makes every interaction feel more alive, premium, and satisfying.
 
-* **Feel Every Tap**
-  Responsive haptic feedback across buttons, toggles, switches, checkboxes, and more—making every interaction feel alive.
+---
 
-* **Tactile Scrolling**
-  Subtle vibrations while scrolling for a smoother, more physical and immersive navigation experience.
+## 🚀 What It Does
 
-* **Edge Haptics**
-  Distinct feedback when you reach the top or bottom of a scrollable view, so you always know when content ends.
+* Adds rich haptic feedback to UI interactions across apps and system UI
+* Improves the feel of scrolling, tapping, and touch actions
+* Makes your phone feel more alive and satisfying
 
-* **Lots of Haptic Patterns**
-  Custom haptic patterns that feel natural, refined, and satisfying.
+---
 
-* **Liquid Glass Effect**
-  iOS 26–inspired liquid glass bottom navigation for a sleek, modern look.
+## 🎛️ Features
 
-* **Modern Material 3 Design**
-  Built with the latest Material 3 expressive system for a clean, dynamic, and polished interface.
+| Feature                        | Description                                                                                                             |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| **Feel Every Tap**             | Responsive haptic feedback across buttons, toggles, switches, checkboxes, and more making every interaction feel alive. |
+| **Tactile Scrolling**          | Subtle vibrations while scrolling for a smoother, more physical and immersive navigation experience.                    |
+| **Edge Haptics**               | Distinct feedback when you reach the top or bottom of a scrollable view, so you always know when content ends.          |
+| **15 Premium Haptic Patterns** | Custom haptic patterns that feel natural, refined, and satisfying.                                                      |
+| **Liquid Glass Effect**        | iOS 26–inspired liquid glass bottom navigation for a sleek, modern look.                                                |
+| **Material 3 Design**          | Built with the latest Material 3 expressive system for a clean, dynamic, and polished interface.                        |
 
+---
 
-## Requirements
+## 📝 Notes
 
-* Accessibility permission (for app-level haptics)
-* LSPosed (for system-wide features for edge haptics)
+> ⚠️ **Work in Progress**
+>
+> The goal is to make haptics feel natural, fast, and consistent across all apps without adding lag
+> or using too much battery.
 
-Right now, LSPosed is needed to make the edge haptics work across the whole system. I’m still looking for a better solution in the future.
+---
 
-## Screenshots
-
-<div style="display: flex; gap: 4px; flex-wrap: wrap;">
-  <img src="assets/screenshot-1.png" alt="Home Screen" width="320" />
-  <img src="assets/screenshot-2.png" alt="Settings" width="320" />
-</div>
-
-## Notes
-
-This is still a work in progress. The goal is to make haptics feel natural, fast, and consistent across all apps without adding lag or using too much battery.
+<p align="center">
+  <i>Built with care for haptic lovers everywhere.</i>
+</p>

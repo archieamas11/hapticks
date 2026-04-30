@@ -1,8 +1,6 @@
 package com.hapticks.app.ui.screens.edgehaptics
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,21 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.SentimentDissatisfied
-import androidx.compose.material.icons.filled.SentimentSatisfied
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.SwipeVertical
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,17 +40,17 @@ import androidx.compose.ui.unit.dp
 import com.hapticks.app.R
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticPattern
+import com.hapticks.app.ui.components.BackPill
+import com.hapticks.app.ui.components.EnableServiceCard
 import com.hapticks.app.ui.components.HapticTestButton
 import com.hapticks.app.ui.components.HapticToggleRow
 import com.hapticks.app.ui.components.PatternSelector
-import com.hapticks.app.ui.components.EnableServiceCard
 import com.hapticks.app.ui.components.SectionCard
 import com.hapticks.app.ui.haptics.SliderTickStepsDefault
 import com.hapticks.app.ui.haptics.performHapticSliderTick
 import com.hapticks.app.ui.haptics.slider01ToTickIndex
 import com.hapticks.app.viewmodel.EdgeHapticsViewModel
 import kotlin.math.roundToInt
-import com.hapticks.app.ui.components.BackPill
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,9 +58,7 @@ fun EdgeHapticsScreen(
     settings: AppSettings,
     testEvent: EdgeHapticsViewModel.TestEvent?,
     isServiceEnabled: Boolean,
-    isLsposedXposedBridgeActive: Boolean,
     onA11yScrollBoundEdgeChange: (Boolean) -> Unit,
-    onEdgeLsposedLibxposedPathChange: (Boolean) -> Unit,
     onPatternSelected: (HapticPattern) -> Unit,
     onIntensityCommit: (Float) -> Unit,
     onTestEdgeHaptic: () -> Unit,
@@ -134,10 +119,6 @@ fun EdgeHapticsScreen(
                 }
             }
 
-            item(key = "lsposed_runtime_status") {
-                LsposedRuntimeStatusCard(isActive = isLsposedXposedBridgeActive)
-            }
-
             item(key = "edge_toggles_section") {
                 SectionCard {
                     HapticToggleRow(
@@ -146,15 +127,7 @@ fun EdgeHapticsScreen(
                         checked = settings.a11yScrollBoundEdge,
                         onCheckedChange = onA11yScrollBoundEdgeChange,
                     )
-                    HapticToggleRow(
-                        title = stringResource(id = R.string.edge_lsposed_title),
-                        subtitle = stringResource(id = R.string.edge_lsposed_subtitle),
-                        checked = settings.edgeLsposedLibxposedPath,
-                        onCheckedChange = onEdgeLsposedLibxposedPathChange,
-                    )
-                    if (settings.edgeLsposedLibxposedPath) {
-                        LsposedLibxposedSetupBlock(isLsposedXposedBridgeActive = isLsposedXposedBridgeActive)
-                    } else if (settings.a11yScrollBoundEdge) {
+                    if (settings.a11yScrollBoundEdge) {
                         A11yScrollBoundEdgeGuideBlock()
                     }
                     IntensityControl(
@@ -205,118 +178,6 @@ private fun A11yScrollBoundEdgeGuideBlock() {
         Text(
             text = stringResource(id = R.string.edge_a11y_guide_body),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun LsposedLibxposedSetupBlock(isLsposedXposedBridgeActive: Boolean) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .padding(top = 8.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        LsposedGuideSection(
-            title = stringResource(id = R.string.edge_lsposed_what_title),
-            body = stringResource(id = R.string.edge_lsposed_what_body),
-        )
-        LsposedGuideSection(
-            title = stringResource(id = R.string.edge_lsposed_setup_title),
-            body = stringResource(id = R.string.edge_lsposed_setup_body),
-        )
-    }
-}
-
-@Composable
-private fun LsposedRuntimeStatusCard(isActive: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    val containerColor = if (isActive) {
-        scheme.primaryContainer
-    } else {
-        scheme.surfaceContainerHigh
-    }
-    val iconBg = if (isActive) scheme.primary else scheme.tertiaryContainer
-    val iconTint = if (isActive) scheme.onPrimary else scheme.onTertiaryContainer
-    val onContainerMuted = if (isActive) scheme.onPrimaryContainer else scheme.onSurfaceVariant
-    val headlineColor = if (isActive) scheme.onPrimaryContainer else scheme.onSurface
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = containerColor,
-        shadowElevation = 2.dp,
-        tonalElevation = 1.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = CircleShape,
-                color = iconBg,
-                shadowElevation = 4.dp,
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        imageVector = if (isActive) Icons.Filled.SentimentSatisfied else Icons.Filled.SentimentDissatisfied,
-                        contentDescription = stringResource(
-                            id = if (isActive) {
-                                R.string.edge_lsposed_status_icon_active_cd
-                            } else {
-                                R.string.edge_lsposed_status_icon_inactive_cd
-                            },
-                        ),
-                        modifier = Modifier.size(36.dp),
-                        tint = iconTint,
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = stringResource(
-                        id = if (isActive) R.string.edge_lsposed_status_active else R.string.edge_lsposed_status_inactive,
-                    ),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = headlineColor,
-                )
-                Text(
-                    text = stringResource(
-                        id = if (isActive) {
-                            R.string.edge_lsposed_status_active_body
-                        } else {
-                            R.string.edge_lsposed_status_inactive_body
-                        },
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = onContainerMuted,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LsposedGuideSection(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

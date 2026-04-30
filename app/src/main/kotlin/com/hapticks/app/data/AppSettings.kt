@@ -28,7 +28,6 @@ data class AppSettings(
     val edgePattern: HapticPattern = HapticPattern.SOFT_BUMP,
     val edgeIntensity: Float = 1.0f,
     val a11yScrollBoundEdge: Boolean = false,
-    val edgeLsposedLibxposedPath: Boolean = false,
 
     // Theme Default Settings
     val useDynamicColors: Boolean = true,

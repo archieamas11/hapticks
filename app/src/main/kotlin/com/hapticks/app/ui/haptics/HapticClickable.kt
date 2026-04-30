@@ -15,10 +15,10 @@ import com.hapticks.app.HapticksApp
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.haptics.HapticPattern
-import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlin.math.roundToInt
 
 const val SliderTickStepsDefault = 19
 
@@ -44,7 +44,10 @@ fun Context.performHapticClick() {
     app.hapticEngine.play(snapshot.pattern, snapshot.intensity)
 }
 
-fun Context.performHapticDoubleClick() {
+fun Context.performHapticPattern(
+    pattern: HapticPattern,
+    intensityOverride: Float? = null,
+) {
     val app = applicationContext as? HapticksApp ?: return
     val snapshot = try {
         runBlocking { app.preferences.settings.first() }
@@ -52,7 +55,12 @@ fun Context.performHapticDoubleClick() {
         AppSettings.Default
     }
     if (!snapshot.hapticsEnabled) return
-    app.hapticEngine.play(HapticPattern.DOUBLE_CLICK, snapshot.intensity)
+    val intensity = intensityOverride ?: snapshot.intensity
+    hapticEngine()?.play(pattern, intensity)
+}
+
+fun Context.performHapticDoubleClick() {
+    performHapticPattern(HapticPattern.DOUBLE_CLICK)
 }
 
 fun Context.performHapticSliderTick() {
@@ -86,7 +94,6 @@ fun withDefaultHaptic(onClick: () -> Unit): () -> Unit = rememberHapticClickActi
 fun Modifier.hapticClickable(
     enabled: Boolean = true,
     disableRipple: Boolean = false,
-    pattern: HapticPattern? = null,
     onClick: () -> Unit,
 ): Modifier = composed {
     val context = LocalContext.current
@@ -104,7 +111,7 @@ fun Modifier.hapticClickable(
         indication = if (disableRipple) null else LocalIndication.current,
         onClick = {
             if (settings.hapticsEnabled) {
-                engine?.play(pattern ?: settings.pattern, settings.intensity)
+                engine?.play(settings.pattern, settings.intensity)
             }
             onClick()
         },

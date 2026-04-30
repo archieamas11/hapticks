@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.hapticks.app.HapticksApp
-import com.hapticks.app.data.HapticsPreferences
 import com.hapticks.app.data.AppSettings
+import com.hapticks.app.data.HapticsPreferences
 import com.hapticks.app.edge.EdgeHapticsBridge
 import com.hapticks.app.haptics.HapticPattern
 import kotlinx.coroutines.Dispatchers
@@ -41,16 +41,6 @@ class EdgeHapticsViewModel(
     private val _testEvent = MutableStateFlow<TestEvent?>(null)
     val testEvent: StateFlow<TestEvent?> = _testEvent.asStateFlow()
 
-    private val hapticksApp: HapticksApp = application as HapticksApp
-
-    /** True while the LibXposed service bridge is bound (LSPosed runtime is talking to this app). */
-    val isLsposedXposedBridgeActive: StateFlow<Boolean> = hapticksApp.xposedServiceConnected
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000L),
-            initialValue = hapticksApp.xposedServiceConnected.value,
-        )
-
     fun setEdgePattern(pattern: HapticPattern) {
         viewModelScope.launch {
             preferences.setEdgePattern(pattern)
@@ -66,14 +56,6 @@ class EdgeHapticsViewModel(
     fun setA11yScrollBoundEdge(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setA11yScrollBoundEdge(enabled)
-            if (enabled) preferences.setEdgeLsposedLibxposedPath(false)
-        }
-    }
-
-    fun setEdgeLsposedLibxposedPath(enabled: Boolean) {
-        viewModelScope.launch {
-            preferences.setEdgeLsposedLibxposedPath(enabled)
-            if (enabled) preferences.setA11yScrollBoundEdge(false)
         }
     }
 

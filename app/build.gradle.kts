@@ -85,7 +85,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            merges += "/META-INF/xposed/**"
         }
     }
 
@@ -118,9 +117,8 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.compose.markdown)
 
-    compileOnly(libs.libxposed.api)
-    implementation(libs.libxposed.service)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

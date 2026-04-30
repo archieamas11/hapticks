@@ -4,12 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -19,8 +21,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,29 +36,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hapticks.app.data.AppSettings
 import com.hapticks.app.ui.components.BottomTab
 import com.hapticks.app.ui.components.FloatingBottomBar
 import com.hapticks.app.ui.components.LiquidGlassBottomBar
 import com.hapticks.app.ui.components.SlidingBottomTabHost
-import com.hapticks.app.ui.screens.tapHaptics.FeelEveryTapScreen
+import com.hapticks.app.ui.haptics.ProvideHapticksEdgeOverscrollHaptics
 import com.hapticks.app.ui.screens.HomeScreen
-import com.hapticks.app.ui.screens.edgehaptics.EdgeHapticsScreen
-import com.hapticks.app.ui.screens.fetchUpdateStatus
-import com.hapticks.app.ui.screens.scrollhaptics.ScrollHapticsScreen
-import com.hapticks.app.ui.screens.SettingsScreen
 import com.hapticks.app.ui.screens.OnboardingScreen
+import com.hapticks.app.ui.screens.SettingsScreen
 import com.hapticks.app.ui.screens.UpdateCheckResult
 import com.hapticks.app.ui.screens.UpdateCheckScreen
 import com.hapticks.app.ui.screens.UpdateCheckUiState
-import com.hapticks.app.data.AppSettings
-import com.hapticks.app.ui.haptics.ProvideHapticksEdgeOverscrollHaptics
+import com.hapticks.app.ui.screens.edgehaptics.EdgeHapticsScreen
+import com.hapticks.app.ui.screens.fetchUpdateStatus
+import com.hapticks.app.ui.screens.scrollhaptics.ScrollHapticsScreen
+import com.hapticks.app.ui.screens.tapHaptics.FeelEveryTapScreen
 import com.hapticks.app.ui.theme.HapticksTheme
-import com.hapticks.app.viewmodel.SettingsViewModel
 import com.hapticks.app.viewmodel.EdgeHapticsViewModel
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.hapticks.app.viewmodel.SettingsViewModel
 import com.kyant.backdrop.backdrops.layerBackdrop
-import androidx.core.net.toUri
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -121,7 +121,11 @@ class MainActivity : ComponentActivity() {
 
                     if (route == Route.UNINITIALIZED) {
                         // Wait for DataStore to load
-                        Box(modifier = Modifier.fillMaxSize().background(backgroundColor))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(backgroundColor)
+                        )
                         return@ProvideHapticksEdgeOverscrollHaptics
                     }
 
@@ -169,7 +173,11 @@ class MainActivity : ComponentActivity() {
                         ) { targetTransitionRoute ->
                             val currentRoute = if (targetTransitionRoute == Route.HOME) lastRootRoute.value else targetTransitionRoute
 
-                            Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(backgroundColor)
+                            ) {
                                 when (currentRoute) {
                                     Route.UNINITIALIZED -> {}
                                     Route.ONBOARDING -> {
@@ -317,14 +325,11 @@ private fun EdgeHapticsFlowHost(
 ) {
     val edgeSettings by edgeViewModel.settings.collectAsStateWithLifecycle()
     val edgeTestEvent by edgeViewModel.testEvent.collectAsStateWithLifecycle()
-    val isLsposedXposedBridgeActive by edgeViewModel.isLsposedXposedBridgeActive.collectAsStateWithLifecycle()
     EdgeHapticsScreen(
         settings = edgeSettings,
         testEvent = edgeTestEvent,
         isServiceEnabled = isServiceEnabled,
-        isLsposedXposedBridgeActive = isLsposedXposedBridgeActive,
         onA11yScrollBoundEdgeChange = edgeViewModel::setA11yScrollBoundEdge,
-        onEdgeLsposedLibxposedPathChange = edgeViewModel::setEdgeLsposedLibxposedPath,
         onPatternSelected = edgeViewModel::setEdgePattern,
         onIntensityCommit = edgeViewModel::setEdgeIntensity,
         onTestEdgeHaptic = edgeViewModel::testEdgeHaptic,
