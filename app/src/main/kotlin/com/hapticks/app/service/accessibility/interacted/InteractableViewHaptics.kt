@@ -1,7 +1,9 @@
 package com.hapticks.app.service.accessibility.interacted
 
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hapticks.app.data.AppSettings
 import com.hapticks.app.haptics.HapticEngine
 import com.hapticks.app.haptics.HapticPattern
@@ -10,9 +12,13 @@ object InteractableViewHaptics {
 
     private const val TOGGLE_COALESCE_THROTTLE_MS = 120L
 
-    private const val TOGGLE_CONTENT_CHANGE_MASK: Int =
-        AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION or
-            AccessibilityEvent.CONTENT_CHANGE_TYPE_CHECKED
+    private val TOGGLE_CONTENT_CHANGE_MASK: Int
+        get() = if (Build.VERSION.SDK_INT >= 36) {
+            AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION or
+                AccessibilityEvent.CONTENT_CHANGE_TYPE_CHECKED
+        } else {
+            AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION
+        }
 
     @JvmStatic
     fun eventTypeMask(settings: AppSettings): Int {
@@ -52,102 +58,74 @@ object InteractableViewHaptics {
         }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun containsIgnoreCase(haystack: CharSequence?, needle: String): Boolean {
-        if (haystack == null) return false
-        val hLen = haystack.length
-        val nLen = needle.length
-        if (nLen == 0 || hLen < nLen) return false
-        val last = hLen - nLen
-        for (i in 0..last) {
-            if (regionMatches(haystack, i, needle, 0, nLen)) return true
-        }
-        return false
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun regionMatches(
-        haystack: CharSequence, hayOffset: Int,
-        needle: String, needleOffset: Int, len: Int
-    ): Boolean {
-        for (i in 0 until len) {
-            val hc = haystack[hayOffset + i]
-            val nc = needle[needleOffset + i]
-            if (hc != nc && hc.uppercaseChar() != nc.uppercaseChar()) return false
-        }
-        return true
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun endsWithIgnoreCase(haystack: CharSequence?, needle: String): Boolean {
-        if (haystack == null) return false
-        val hLen = haystack.length
-        val nLen = needle.length
-        if (hLen < nLen) return false
-        return regionMatches(haystack, hLen - nLen, needle, 0, nLen)
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun equalsIgnoreCase(haystack: CharSequence?, needle: String): Boolean {
-        if (haystack == null) return false
-        if (haystack.length != needle.length) return false
-        return regionMatches(haystack, 0, needle, 0, needle.length)
-    }
-
     private fun isSwitchLikeToggleForWindowEvent(event: AccessibilityEvent, changeTypes: Int): Boolean {
-        if (isObviousSwitchClassName(event.className)) return true
-
-        val hasChecked = (changeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_CHECKED) != 0
+        val hasChecked = if (Build.VERSION.SDK_INT >= 36) {
+            (changeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_CHECKED) != 0
+        } else false
         val hasStateDescription = (changeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION) != 0
         if (!hasChecked && !hasStateDescription) return false
 
-        val node = event.source
-        if (node == null) return false
-        try {
-            if (isExcludedCheckable(node)) {
-                return false
-            }
-            if (isObviousSwitchClassName(node.className)) return true
-            if (!node.isCheckable) return false
-            if (!isAmbiguousCheckableAsSwitch(node)) return false
-            return hasChecked || hasStateDescription
-        } finally {
-            runCatching { node.recycle() }
-        }
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun isObviousSwitchClassName(className: CharSequence?): Boolean {
-        if (className == null) return false
-        if (containsIgnoreCase(className, "CheckBox")) return false
-        if (containsIgnoreCase(className, "Radio")) return false
-        if (containsIgnoreCase(className, "Switch")) return true
-        if (endsWithIgnoreCase(className, "ToggleButton")) return true
-        return false
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun isAmbiguousCheckableAsSwitch(node: AccessibilityNodeInfo): Boolean {
+        val node = event.source ?: return false
         if (!node.isCheckable) return false
-        val className = node.className ?: return false
-        if (equalsIgnoreCase(className, "android.view.View")) return true
-        if (containsIgnoreCase(className, "compose") &&
-            containsIgnoreCase(className, "ui") &&
-            containsIgnoreCase(className, "View")
-        ) return true
-        if (containsIgnoreCase(className, "CompoundButton") &&
-            !containsIgnoreCase(className, "Check")
-        ) return true
+        if (node.isRatingBar() || node.isChip()) return false
+        if (node.isSwitchRole() || node.hasToggleActions()) return true
+        if (hasChecked && !node.isCheckBoxRole() && !node.isRadioRole()) return true
         return false
     }
 
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun isExcludedCheckable(node: AccessibilityNodeInfo): Boolean {
-        val className = node.className ?: return false
-        if (containsIgnoreCase(className, "CheckBox")) return true
-        if (containsIgnoreCase(className, "Radio")) return true
-        if (containsIgnoreCase(className, "Chip")) return true
-        if (containsIgnoreCase(className, "Rating")) return true
+    private inline fun AccessibilityNodeInfo.isSwitchRole(): Boolean {
+        val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
+        if (role != null) {
+            if (role.equals("switch", ignoreCase = true) ||
+                role.equals("toggle", ignoreCase = true)
+            ) return true
+        }
         return false
+    }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun AccessibilityNodeInfo.isCheckBoxRole(): Boolean {
+        val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
+        return role != null && role.equals("checkbox", ignoreCase = true)
+    }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun AccessibilityNodeInfo.isRadioRole(): Boolean {
+        val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
+        return role != null && (
+            role.equals("radio button", ignoreCase = true) ||
+            role.equals("radio", ignoreCase = true)
+        )
+    }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun AccessibilityNodeInfo.isRatingBar(): Boolean {
+        val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
+        if (role != null && role.contains("rating", ignoreCase = true)) return true
+        return this.rangeInfo != null
+    }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun AccessibilityNodeInfo.isChip(): Boolean {
+        val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
+        return role != null && role.contains("chip", ignoreCase = true)
+    }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun AccessibilityNodeInfo.hasToggleActions(): Boolean {
+        val compat = AccessibilityNodeInfoCompat.wrap(this)
+        val actionList = compat.actionList
+        var hasClick = false
+        for (action in actionList) {
+            val id = action.id
+            if (id == AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_CLICK.id ||
+                id == AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SELECT.id
+            ) {
+                hasClick = true
+                break
+            }
+        }
+        return hasClick && this.isCheckable
     }
 }
