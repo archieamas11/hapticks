@@ -1,18 +1,20 @@
 package com.hapticks.app.service.accessibility.handlers
 
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import com.hapticks.app.data.model.AppSettings
 import com.hapticks.app.core.haptics.HapticEngine
 import com.hapticks.app.core.haptics.HapticPattern
-import com.hapticks.app.data.model.AppSettings
 
 object ViewInteractedHapticHandler {
 
     private const val TOGGLE_COALESCE_THROTTLE_MS = 120L
-    private const val TOGGLE_HAPTIC_DEBOUNCE_MS = 250L
+    private const val ARMED_TIMEOUT_MS = 400L
 
     private val TOGGLE_CONTENT_CHANGE_MASK: Int
         get() = if (Build.VERSION.SDK_INT >= 36) {
@@ -24,6 +26,9 @@ object ViewInteractedHapticHandler {
 
     @Volatile
     private var lastToggleHapticMs = 0L
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var armedRunnable: Runnable? = null
 
     @JvmStatic
     fun eventTypeMask(settings: AppSettings): Int {
@@ -44,12 +49,7 @@ object ViewInteractedHapticHandler {
 
         return when (event.eventType) {
             AccessibilityEvent.TYPE_VIEW_CLICKED -> handleClickEvent(engine, settings, event)
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> handleWindowContentChangedEvent(
-                engine,
-                settings,
-                event
-            )
-
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> handleWindowContentChangedEvent(engine, settings, event)
             else -> false
         }
     }
@@ -60,17 +60,31 @@ object ViewInteractedHapticHandler {
         event: AccessibilityEvent
     ): Boolean {
         val node = event.source
-        val suppressStandardPattern = if (node != null) {
+        val isUnambiguousToggle = if (node != null) {
             try {
-                node.isCheckable || node.containsToggleDescendant(maxDepth = 2)
+                node.isCheckable && (
+                    node.isSwitchRole() ||
+                    node.isCheckBoxRole() ||
+                    node.isRadioRole() ||
+                    node.hasToggleActions()
+                )
             } finally {
                 node.recycle()
             }
         } else {
-            true
+            false
         }
 
-        if (!suppressStandardPattern) {
+        if (isUnambiguousToggle) {
+            armedRunnable?.let { handler.removeCallbacks(it) }
+            
+            val fallback = Runnable {
+                engine.play(settings.pattern, settings.intensity)
+                armedRunnable = null
+            }
+            armedRunnable = fallback
+            handler.postDelayed(fallback, ARMED_TIMEOUT_MS)
+        } else {
             engine.play(settings.pattern, settings.intensity)
         }
         return true
@@ -86,8 +100,13 @@ object ViewInteractedHapticHandler {
         if (changeTypes and TOGGLE_CONTENT_CHANGE_MASK == 0) return true
         if (!isSwitchLikeToggleForWindowEvent(event, changeTypes)) return true
 
+        armedRunnable?.let {
+            handler.removeCallbacks(it)
+            armedRunnable = null
+        }
+
         val now = SystemClock.uptimeMillis()
-        if (now - lastToggleHapticMs < TOGGLE_HAPTIC_DEBOUNCE_MS) {
+        if (now - lastToggleHapticMs < TOGGLE_COALESCE_THROTTLE_MS) {
             return true
         }
         lastToggleHapticMs = now
@@ -125,36 +144,13 @@ object ViewInteractedHapticHandler {
         }
     }
 
-    private fun AccessibilityNodeInfo.containsToggleDescendant(maxDepth: Int): Boolean {
-        if (maxDepth <= 0) return false
-        return try {
-            val childCount = this.childCount.coerceAtMost(12)
-            for (i in 0 until childCount) {
-                val child = this.getChild(i) ?: continue
-                val childIsToggle = try {
-                    child.isCheckable ||
-                            child.isSwitchRole() ||
-                            child.isCheckBoxRole() ||
-                            child.isRadioRole() ||
-                            child.containsToggleDescendant(maxDepth - 1)
-                } finally {
-                    child.recycle()
-                }
-                if (childIsToggle) return true
-            }
-            false
-        } catch (e: Exception) {
-            true
-        }
-    }
-
     @Suppress("NOTHING_TO_INLINE")
     private inline fun AccessibilityNodeInfo.isSwitchRole(): Boolean {
         val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
         return role != null && (
-                role.equals("switch", ignoreCase = true) ||
-                        role.equals("toggle", ignoreCase = true)
-                )
+            role.equals("switch", ignoreCase = true) ||
+            role.equals("toggle", ignoreCase = true)
+        )
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -167,9 +163,9 @@ object ViewInteractedHapticHandler {
     private inline fun AccessibilityNodeInfo.isRadioRole(): Boolean {
         val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
         return role != null && (
-                role.equals("radio button", ignoreCase = true) ||
-                        role.equals("radio", ignoreCase = true)
-                )
+            role.equals("radio button", ignoreCase = true) ||
+            role.equals("radio", ignoreCase = true)
+        )
     }
 
     @Suppress("NOTHING_TO_INLINE")
