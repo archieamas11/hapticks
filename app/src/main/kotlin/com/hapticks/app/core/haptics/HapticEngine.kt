@@ -42,12 +42,6 @@ class HapticEngine(context: Context) {
     @Volatile
     private var lastFiredAt: Long = Long.MIN_VALUE
 
-    /**
-     * Play a haptic pattern with the given intensity (0..1).
-     * 
-     * @param throttleMs Minimum time between any haptic firing. 
-     *                   Set to 0 to disable throttling.
-     */
     fun play(
         pattern: HapticPattern,
         intensity: Float,
@@ -101,8 +95,8 @@ class HapticEngine(context: Context) {
             HapticPattern.CLICK -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(1.0f)
-                    .addControlPoint(intensity, 1.0f, 8L)   // attack
-                    .addControlPoint(0f, 0.8f, 12L)         // decay
+                    .addControlPoint(intensity, 1.0f, 8L)
+                    .addControlPoint(0f, 0.8f, 12L)
                     .build()
             }
 
@@ -128,9 +122,9 @@ class HapticEngine(context: Context) {
             HapticPattern.THUD -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(0.1f)
-                    .addControlPoint(intensity, 0.15f, 35L)          // impact
-                    .addControlPoint(intensity * 0.5f, 0.1f, 80L)    // resonance
-                    .addControlPoint(intensity * 0.15f, 0.1f, 60L)   // tail
+                    .addControlPoint(intensity, 0.15f, 35L)
+                    .addControlPoint(intensity * 0.5f, 0.1f, 80L)
+                    .addControlPoint(intensity * 0.15f, 0.1f, 60L)
                     .addControlPoint(0f, 0.1f, 40L)
                     .build()
             }
@@ -139,9 +133,9 @@ class HapticEngine(context: Context) {
             HapticPattern.HEAVY_CLICK -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(1.0f)
-                    .addControlPoint(intensity, 1.0f, 10L)           // primary strike
-                    .addControlPoint(intensity * 0.55f, 0.6f, 25L)   // secondary mass
-                    .addControlPoint(intensity * 0.2f, 0.4f, 40L)    // decay
+                    .addControlPoint(intensity, 1.0f, 10L)
+                    .addControlPoint(intensity * 0.55f, 0.6f, 25L)
+                    .addControlPoint(intensity * 0.2f, 0.4f, 40L)
                     .addControlPoint(0f, 0.3f, 30L)
                     .build()
             }
@@ -151,7 +145,7 @@ class HapticEngine(context: Context) {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(1.0f)
                     .addControlPoint(intensity, 1.0f, 8L)
-                    .addControlPoint(0f, 0.5f, 55L)                  // gap
+                    .addControlPoint(0f, 0.5f, 55L)
                     .addControlPoint(intensity, 1.0f, 8L)
                     .addControlPoint(0f, 0.5f, 12L)
                     .build()
@@ -181,9 +175,9 @@ class HapticEngine(context: Context) {
             HapticPattern.ELASTIC -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(0.2f)
-                    .addControlPoint(intensity * 0.25f, 0.25f, 45L)  // stretch (soft)
-                    .addControlPoint(intensity, 1.0f, 18L)            // snap (sharp)
-                    .addControlPoint(0f, 0.7f, 30L)                   // settle
+                    .addControlPoint(intensity * 0.25f, 0.25f, 45L)
+                    .addControlPoint(intensity, 1.0f, 18L)
+                    .addControlPoint(0f, 0.7f, 30L)
                     .build()
             }
 
@@ -228,9 +222,9 @@ class HapticEngine(context: Context) {
             HapticPattern.HEARTBEAT -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(0.2f)
-                    .addControlPoint(intensity, 0.25f, 25L)           // lub
-                    .addControlPoint(0f, 0.15f, 100L)                 // gap
-                    .addControlPoint(intensity * 0.45f, 0.2f, 30L)    // dub (softer)
+                    .addControlPoint(intensity, 0.25f, 25L)
+                    .addControlPoint(0f, 0.15f, 100L)
+                    .addControlPoint(intensity * 0.45f, 0.2f, 30L)
                     .addControlPoint(0f, 0.15f, 40L)
                     .build()
             }
@@ -251,9 +245,9 @@ class HapticEngine(context: Context) {
             HapticPattern.RUMBLE -> {
                 VibrationEffect.BasicEnvelopeBuilder()
                     .setInitialSharpness(0.05f)
-                    .addControlPoint(intensity * 0.85f, 0.05f, 60L)   // ramp
-                    .addControlPoint(intensity * 0.85f, 0.05f, 120L)  // hold
-                    .addControlPoint(0f, 0.05f, 60L)                  // release
+                    .addControlPoint(intensity * 0.85f, 0.05f, 60L)
+                    .addControlPoint(intensity * 0.85f, 0.05f, 120L)
+                    .addControlPoint(0f, 0.05f, 60L)
                     .build()
             }
         }

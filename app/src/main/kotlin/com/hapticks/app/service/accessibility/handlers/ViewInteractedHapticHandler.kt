@@ -1,16 +1,18 @@
 package com.hapticks.app.service.accessibility.handlers
 
 import android.os.Build
+import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
-import com.hapticks.app.data.model.AppSettings
 import com.hapticks.app.core.haptics.HapticEngine
 import com.hapticks.app.core.haptics.HapticPattern
+import com.hapticks.app.data.model.AppSettings
 
 object ViewInteractedHapticHandler {
 
     private const val TOGGLE_COALESCE_THROTTLE_MS = 120L
+    private const val TOGGLE_HAPTIC_DEBOUNCE_MS = 250L
 
     private val TOGGLE_CONTENT_CHANGE_MASK: Int
         get() = if (Build.VERSION.SDK_INT >= 36) {
@@ -19,6 +21,9 @@ object ViewInteractedHapticHandler {
         } else {
             AccessibilityEvent.CONTENT_CHANGE_TYPE_STATE_DESCRIPTION
         }
+
+    @Volatile
+    private var lastToggleHapticMs = 0L
 
     @JvmStatic
     fun eventTypeMask(settings: AppSettings): Int {
@@ -38,41 +43,61 @@ object ViewInteractedHapticHandler {
         if (!settings.tapEnabled) return true
 
         return when (event.eventType) {
-            AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                val node = event.source
-                if (node != null) {
-                    val isToggle = try {
-                        node.isCheckable &&
-                                (node.isSwitchRole() ||
-                                        node.isCheckBoxRole() ||
-                                        node.isRadioRole() ||
-                                        node.hasToggleActions())
-                    } finally {
-                        node.recycle()
-                    }
-                    if (isToggle) {
-                        return true
-                    }
-                }
-                engine.play(settings.pattern, settings.intensity)
-                true
-            }
-
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                val changeTypes = event.contentChangeTypes
-                if (changeTypes == 0) return true
-                if (changeTypes and TOGGLE_CONTENT_CHANGE_MASK == 0) return true
-                if (!isSwitchLikeToggleForWindowEvent(event, changeTypes)) return true
-                engine.play(
-                    HapticPattern.DOUBLE_CLICK,
-                    1.0f,
-                    throttleMs = TOGGLE_COALESCE_THROTTLE_MS,
-                )
-                true
-            }
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> handleClickEvent(engine, settings, event)
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> handleWindowContentChangedEvent(
+                engine,
+                settings,
+                event
+            )
 
             else -> false
         }
+    }
+
+    private fun handleClickEvent(
+        engine: HapticEngine,
+        settings: AppSettings,
+        event: AccessibilityEvent
+    ): Boolean {
+        val node = event.source
+        val suppressStandardPattern = if (node != null) {
+            try {
+                node.isCheckable || node.containsToggleDescendant(maxDepth = 2)
+            } finally {
+                node.recycle()
+            }
+        } else {
+            true
+        }
+
+        if (!suppressStandardPattern) {
+            engine.play(settings.pattern, settings.intensity)
+        }
+        return true
+    }
+
+    private fun handleWindowContentChangedEvent(
+        engine: HapticEngine,
+        settings: AppSettings,
+        event: AccessibilityEvent
+    ): Boolean {
+        val changeTypes = event.contentChangeTypes
+        if (changeTypes == 0) return true
+        if (changeTypes and TOGGLE_CONTENT_CHANGE_MASK == 0) return true
+        if (!isSwitchLikeToggleForWindowEvent(event, changeTypes)) return true
+
+        val now = SystemClock.uptimeMillis()
+        if (now - lastToggleHapticMs < TOGGLE_HAPTIC_DEBOUNCE_MS) {
+            return true
+        }
+        lastToggleHapticMs = now
+
+        engine.play(
+            HapticPattern.DOUBLE_CLICK,
+            settings.intensity,
+            throttleMs = TOGGLE_COALESCE_THROTTLE_MS,
+        )
+        return true
     }
 
     private fun isSwitchLikeToggleForWindowEvent(
@@ -87,22 +112,49 @@ object ViewInteractedHapticHandler {
         if (!hasChecked && !hasStateDescription) return false
 
         val node = event.source ?: return false
-        if (!node.isCheckable) return false
-        if (node.isRatingBar() || node.isChip()) return false
-        if (node.isSwitchRole() || node.hasToggleActions()) return true
-        if (hasChecked && !node.isCheckBoxRole() && !node.isRadioRole()) return true
-        return false
+        return try {
+            when {
+                !node.isCheckable -> false
+                node.isRatingBar() || node.isChip() -> false
+                node.isSwitchRole() || node.hasToggleActions() -> true
+                hasChecked && !node.isCheckBoxRole() && !node.isRadioRole() -> true
+                else -> false
+            }
+        } finally {
+            node.recycle()
+        }
+    }
+
+    private fun AccessibilityNodeInfo.containsToggleDescendant(maxDepth: Int): Boolean {
+        if (maxDepth <= 0) return false
+        return try {
+            val childCount = this.childCount.coerceAtMost(12)
+            for (i in 0 until childCount) {
+                val child = this.getChild(i) ?: continue
+                val childIsToggle = try {
+                    child.isCheckable ||
+                            child.isSwitchRole() ||
+                            child.isCheckBoxRole() ||
+                            child.isRadioRole() ||
+                            child.containsToggleDescendant(maxDepth - 1)
+                } finally {
+                    child.recycle()
+                }
+                if (childIsToggle) return true
+            }
+            false
+        } catch (e: Exception) {
+            true
+        }
     }
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun AccessibilityNodeInfo.isSwitchRole(): Boolean {
         val role = AccessibilityNodeInfoCompat.wrap(this).roleDescription?.toString()
-        if (role != null) {
-            if (role.equals("switch", ignoreCase = true) ||
-                role.equals("toggle", ignoreCase = true)
-            ) return true
-        }
-        return false
+        return role != null && (
+                role.equals("switch", ignoreCase = true) ||
+                        role.equals("toggle", ignoreCase = true)
+                )
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -136,18 +188,14 @@ object ViewInteractedHapticHandler {
     @Suppress("NOTHING_TO_INLINE")
     private inline fun AccessibilityNodeInfo.hasToggleActions(): Boolean {
         val compat = AccessibilityNodeInfoCompat.wrap(this)
-        val actionList = compat.actionList
-        var hasClick = false
-        for (action in actionList) {
+        for (action in compat.actionList) {
             val id = action.id
             if (id == AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_CLICK.id ||
                 id == AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SELECT.id
             ) {
-                hasClick = true
-                break
+                return true
             }
         }
-        return hasClick && this.isCheckable
+        return false
     }
 }
-

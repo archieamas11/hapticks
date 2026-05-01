@@ -2,8 +2,8 @@ package com.hapticks.app.service.accessibility.handlers
 
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import com.hapticks.app.data.model.AppSettings
-import java.util.LinkedHashMap
 import kotlin.math.abs
 
 internal object ScrollContentHapticHandler {
@@ -46,14 +46,18 @@ internal object ScrollContentHapticHandler {
         ): Boolean = size > MAX_TRACKED_SURFACES
     }
 
-    fun onViewScrolled(event: AccessibilityEvent, settings: AppSettings): Decision {
+    fun onViewScrolled(
+        event: AccessibilityEvent,
+        settings: AppSettings,
+        node: AccessibilityNodeInfo? = null
+    ): Decision {
         val my = event.maxScrollY
         if (my <= 0) {
             return Decision.None
         }
 
         val pos = event.scrollY.coerceIn(0, my)
-        val key = scrolledSurfaceKey(event) ?: return Decision.None
+        val key = scrolledSurfaceKey(event, node) ?: return Decision.None
         val eventTime = event.eventTime
 
         val prev: ContentState

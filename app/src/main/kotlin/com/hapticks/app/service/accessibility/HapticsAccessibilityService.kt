@@ -2,14 +2,18 @@ package com.hapticks.app.service.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
-import com.hapticks.app.features.main.HapticksApp
-import com.hapticks.app.data.model.AppSettings
 import com.hapticks.app.core.haptics.HapticEngine
+import com.hapticks.app.data.model.AppSettings
+import com.hapticks.app.features.main.HapticksApp
 import com.hapticks.app.service.accessibility.events.isAccessibilityEventFromOwnApplication
-import com.hapticks.app.service.accessibility.handlers.ViewInteractedHapticHandler
-import com.hapticks.app.service.accessibility.handlers.ScrollEdgeHapticHandler
 import com.hapticks.app.service.accessibility.handlers.ScrollContentHapticHandler
-import kotlinx.coroutines.*
+import com.hapticks.app.service.accessibility.handlers.ScrollEdgeHapticHandler
+import com.hapticks.app.service.accessibility.handlers.ViewInteractedHapticHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -67,30 +71,41 @@ class HapticsAccessibilityService : AccessibilityService() {
         }
 
         if (type == typeScrolled) {
-            var consumedByEdge = false
-            if (settings.a11yScrollBoundEdge) {
-                if (ScrollEdgeHapticHandler.onViewScrolled(ev) ==
-                    ScrollEdgeHapticHandler.Result.PlayEdgeHaptic
-                ) {
-                    engine.play(
-                        settings.edgePattern,
-                        settings.edgeIntensity,
-                        throttleMs = EDGE_THROTTLE_MS
-                    )
-                    consumedByEdge = true
-                }
-            }
-            if (settings.scrollEnabled && !consumedByEdge) {
-                when (val scroll = ScrollContentHapticHandler.onViewScrolled(ev, settings)) {
-                    is ScrollContentHapticHandler.Decision.Play -> {
+            val node = ev.source
+            try {
+                var consumedByEdge = false
+                if (settings.a11yScrollBoundEdge) {
+                    if (ScrollEdgeHapticHandler.onViewScrolled(ev, node) ==
+                        ScrollEdgeHapticHandler.Result.PlayEdgeHaptic
+                    ) {
                         engine.play(
-                            settings.scrollPattern,
-                            scroll.intensity,
-                            throttleMs = 0L,
+                            settings.edgePattern,
+                            settings.edgeIntensity,
+                            throttleMs = EDGE_THROTTLE_MS
                         )
+                        consumedByEdge = true
                     }
+                }
+                if (settings.scrollEnabled && !consumedByEdge) {
+                    when (val scroll =
+                        ScrollContentHapticHandler.onViewScrolled(ev, settings, node)) {
+                        is ScrollContentHapticHandler.Decision.Play -> {
+                            engine.play(
+                                settings.scrollPattern,
+                                scroll.intensity,
+                                throttleMs = 0L,
+                            )
+                        }
 
-                    ScrollContentHapticHandler.Decision.None -> Unit
+                        ScrollContentHapticHandler.Decision.None -> Unit
+                    }
+                }
+            } finally {
+                if (android.os.Build.VERSION.SDK_INT < 33) {
+                    try {
+                        node?.recycle()
+                    } catch (_: Exception) {
+                    }
                 }
             }
         }

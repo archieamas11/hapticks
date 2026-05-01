@@ -38,24 +38,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hapticks.app.data.model.AppSettings
 import com.hapticks.app.core.ui.components.BottomTab
 import com.hapticks.app.core.ui.components.FloatingBottomBar
 import com.hapticks.app.core.ui.components.LiquidGlassBottomBar
 import com.hapticks.app.core.ui.components.SlidingBottomTabHost
 import com.hapticks.app.core.ui.extensions.HapticOverscrollProvider
+import com.hapticks.app.core.ui.theme.HapticksTheme
+import com.hapticks.app.data.model.AppSettings
+import com.hapticks.app.features.edge.EdgeHapticsScreen
+import com.hapticks.app.features.edge.EdgeHapticsViewModel
 import com.hapticks.app.features.onboarding.OnboardingScreen
+import com.hapticks.app.features.scroll.ScrollHapticsScreen
 import com.hapticks.app.features.settings.SettingsScreen
+import com.hapticks.app.features.settings.SettingsViewModel
+import com.hapticks.app.features.tap.TapHapticsScreen
 import com.hapticks.app.features.update.UpdateCheckResult
 import com.hapticks.app.features.update.UpdateCheckScreen
 import com.hapticks.app.features.update.UpdateCheckUiState
-import com.hapticks.app.features.edge.EdgeHapticsScreen
 import com.hapticks.app.features.update.fetchUpdateStatus
-import com.hapticks.app.features.scroll.ScrollHapticsScreen
-import com.hapticks.app.features.tap.TapHapticsScreen
-import com.hapticks.app.core.ui.theme.HapticksTheme
-import com.hapticks.app.features.edge.EdgeHapticsViewModel
-import com.hapticks.app.features.settings.SettingsViewModel
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlinx.coroutines.launch
@@ -127,7 +127,6 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (route == Route.UNINITIALIZED) {
-                        // Wait for DataStore to load
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()

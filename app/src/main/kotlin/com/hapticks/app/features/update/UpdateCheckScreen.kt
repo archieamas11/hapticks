@@ -440,8 +440,6 @@ private fun UpdateCheckEmptyState(body: String) {
     }
 }
 
-// REST OF THE LOGIC REMAINS THE SAME...
-
 internal suspend fun fetchLatestRelease(): LatestRelease? = withContext(Dispatchers.IO) {
     val endpoint = "https://api.github.com/repos/archieamas11/hapticks/releases/latest"
     fetchReleaseFromEndpoint(endpoint)

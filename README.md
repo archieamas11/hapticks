@@ -20,7 +20,8 @@
 
 ## ✨ Why Hapticks?
 
-I’m a big fan of haptic feedback. Some phones especially Pixel devices have really good haptics, but
+I’m a big fan of haptic feedback. Some phones, especially Pixel and Samsung Flagship devices, have
+really good haptics, but
 they’re **underutilized**.
 
 A lot of apps and even parts of Android don’t give haptic feedback when you interact with them. That
@@ -48,6 +49,32 @@ makes the experience feel flat.
 | **15 Premium Haptic Patterns** | Custom haptic patterns that feel natural, refined, and satisfying.                                                      |
 | **Liquid Glass Effect**        | iOS 26–inspired liquid glass bottom navigation for a sleek, modern look.                                                |
 | **Material 3 Design**          | Built with the latest Material 3 expressive system for a clean, dynamic, and polished interface.                        |
+
+---
+
+## 🔐 Transparency & Privacy
+
+Hapticks uses the Android **Accessibility Service API** to deliver system-wide haptic feedback
+across apps.
+
+### Why Accessibility is required
+
+The Accessibility API allows Hapticks to:
+
+- Detect UI interactions like taps, scrolls, and edge reaches
+- Trigger precise haptic feedback at the right moment
+- Work consistently across all apps and system UI
+
+Without this, system-wide haptics would not be possible.
+
+### What Hapticks does NOT do
+
+- ❌ Does NOT collect any personal data
+- ❌ Does NOT track user behavior
+- ❌ Does NOT send data to any server
+- ❌ Does NOT log or store interactions
+
+All processing happens **locally on your device**.
 
 ---
 

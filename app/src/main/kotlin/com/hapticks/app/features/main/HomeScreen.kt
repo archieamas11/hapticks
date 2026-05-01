@@ -11,16 +11,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.SwipeUp
 import androidx.compose.material.icons.rounded.SwipeVertical
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.SwipeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hapticks.app.R
@@ -86,6 +87,7 @@ fun HomeScreen(
                     iconBg = MaterialTheme.colorScheme.secondary,
                     iconTint = MaterialTheme.colorScheme.onSecondary,
                     onClick = onOpenTactileScrolling,
+                    isBeta = true,
                 )
                 FeatureCard(
                     title = stringResource(id = R.string.home_edge_haptics_title),
@@ -96,6 +98,7 @@ fun HomeScreen(
                     iconBg = MaterialTheme.colorScheme.secondary,
                     iconTint = MaterialTheme.colorScheme.onSecondary,
                     onClick = onOpenEdgeHaptics,
+                    isBeta = true,
                 )
                 FeatureCard(
                     title = stringResource(id = R.string.home_coming_soon_title),
@@ -147,6 +150,7 @@ private fun FeatureCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    isBeta: Boolean = false,
 ) {
     val alpha = if (enabled) 1f else 0.65f
     Surface(
@@ -182,13 +186,20 @@ private fun FeatureCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
                         color = onAccent.copy(alpha = alpha),
                     )
+
+                    if (isBeta) {
+                        BetaTag(
+                            containerColor = iconBg,
+                            contentColor = iconTint
+                        )
+                    }
                 }
                 Text(
                     text = subtitle,
@@ -200,6 +211,27 @@ private fun FeatureCard(
                 ChevronPill()
             }
         }
+    }
+}
+
+@Composable
+private fun BetaTag(
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color,
+) {
+    Surface(
+        color = containerColor,
+        shape = CircleShape,
+    ) {
+        Text(
+            text = stringResource(id = R.string.feature_beta).uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            ),
+            color = contentColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
     }
 }
 

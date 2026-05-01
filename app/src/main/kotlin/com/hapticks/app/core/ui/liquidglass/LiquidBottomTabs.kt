@@ -68,7 +68,7 @@ fun LiquidBottomTabs(
     tabsCount: Int,
     modifier: Modifier = Modifier,
     isBlurEnabled: Boolean = true,
-    inactiveContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),  // ← added
+    inactiveContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
     content: @Composable RowScope.() -> Unit
 ) {
     val isInLightTheme = !isSystemInDarkTheme()
