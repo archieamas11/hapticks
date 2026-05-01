@@ -82,7 +82,7 @@ jobs:
         with:
           artifacts: "app/build/outputs/apk/release/app-release.apk"
           tag: ${{ steps.release_vars.outputs.tag }}
-          name: Release ${{ steps.release_vars.outputs.tag }}
+          name: Hapticks ${{ steps.release_vars.outputs.tag }}
           body: |
             Signed release APK for **${{ steps.release_vars.outputs.tag }}** (commit ${{ github.sha }}).
           generateReleaseNotes: true
